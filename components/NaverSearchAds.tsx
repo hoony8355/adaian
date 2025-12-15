@@ -435,7 +435,7 @@ const ResultDashboard = ({ result }: { result: AnalysisResult }) => {
             <div className="mb-6">
               <h4 className="text-sm text-green-400 font-bold mb-2 uppercase tracking-wide">확장 추천 (Opportunities)</h4>
               <div className="flex flex-wrap gap-2">
-                {result.keywordOpportunities.map((kw, i) => (
+                {result.keywordOpportunities?.map((kw, i) => (
                   <span key={i} className="bg-green-900/30 text-green-200 text-xs px-3 py-1.5 rounded-full border border-green-900/50">{kw}</span>
                 ))}
               </div>
@@ -443,7 +443,7 @@ const ResultDashboard = ({ result }: { result: AnalysisResult }) => {
             <div>
               <h4 className="text-sm text-red-400 font-bold mb-2 uppercase tracking-wide">제외 추천 (Negative)</h4>
               <div className="flex flex-wrap gap-2">
-                {result.negativeKeywords.map((kw, i) => (
+                {result.negativeKeywords?.map((kw, i) => (
                   <span key={i} className="bg-red-900/30 text-red-200 text-xs px-3 py-1.5 rounded-full border border-red-900/50">{kw}</span>
                 ))}
               </div>
