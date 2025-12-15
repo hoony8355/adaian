@@ -58,6 +58,100 @@ const LoadingScreen = () => {
   );
 };
 
+const ExampleReportModal = ({ onClose }: { onClose: () => void }) => {
+  const dummyTrendData = [
+    { name: '1주차', roas: 250, cost: 800000 },
+    { name: '2주차', roas: 310, cost: 850000 },
+    { name: '3주차', roas: 280, cost: 900000 },
+    { name: '4주차', roas: 420, cost: 750000 },
+  ];
+
+  return (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-fade-in">
+      <div className="bg-[#2d2f2e] w-full max-w-4xl max-h-[90vh] rounded-xl border border-gray-600 shadow-2xl flex flex-col">
+        {/* Header */}
+        <div className="flex justify-between items-center p-6 border-b border-gray-700">
+          <div>
+            <h2 className="text-xl font-bold text-white">📊 분석 리포트 예시 미리보기</h2>
+            <p className="text-sm text-gray-400">실제 분석 완료 시 아래와 같은 리포트가 제공됩니다.</p>
+          </div>
+          <button onClick={onClose} className="text-gray-400 hover:text-white">
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+          </button>
+        </div>
+
+        {/* Content - Scrollable */}
+        <div className="overflow-y-auto p-6 space-y-6">
+          {/* 1. 요약 카드 */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="bg-[#454746] p-4 rounded-lg border border-gray-700">
+               <p className="text-gray-400 text-xs">총 매출액</p>
+               <p className="text-lg font-bold text-white">₩15,400,000</p>
+            </div>
+            <div className="bg-[#454746] p-4 rounded-lg border border-gray-700">
+               <p className="text-gray-400 text-xs">평균 ROAS</p>
+               <p className="text-lg font-bold text-[#F05519]">420%</p>
+            </div>
+            <div className="bg-[#454746] p-4 rounded-lg border border-gray-700">
+               <p className="text-gray-400 text-xs">총 비용</p>
+               <p className="text-lg font-bold text-white">₩3,660,000</p>
+            </div>
+             <div className="bg-[#454746] p-4 rounded-lg border border-gray-700">
+               <p className="text-gray-400 text-xs">ROAS 변화</p>
+               <p className="text-lg font-bold text-green-400">+15% 🔼</p>
+            </div>
+          </div>
+
+          {/* 2. 핵심 문제 & 액션 */}
+          <div className="grid md:grid-cols-2 gap-4">
+             <div className="bg-[#2d2f2e] border border-red-900/50 p-4 rounded-lg">
+                <h4 className="font-bold text-red-400 mb-2 flex items-center gap-2">⚠️ 핵심 문제점 (Critical)</h4>
+                <ul className="text-sm text-gray-300 space-y-2">
+                   <li>• '모바일' 매체의 클릭 비용이 PC 대비 3배 높지만 전환율은 1/2 수준입니다.</li>
+                   <li>• 키워드 [원피스], [여름옷]에서 50만원의 비용이 발생했으나 전환은 0건입니다.</li>
+                </ul>
+             </div>
+             <div className="bg-[#2d2f2e] border border-green-900/50 p-4 rounded-lg">
+                <h4 className="font-bold text-green-400 mb-2 flex items-center gap-2">🚀 실행 가이드 (Action)</h4>
+                <ul className="text-sm text-gray-300 space-y-2">
+                   <li>• 모바일 입찰 가중치를 현재 150%에서 100%로 하향 조정하세요.</li>
+                   <li>• 성과가 없는 [원피스] 키워드를 '제외 키워드'로 등록하여 예산을 방어하세요.</li>
+                </ul>
+             </div>
+          </div>
+
+          {/* 3. 차트 예시 */}
+          <div className="bg-[#454746] p-4 rounded-lg border border-gray-700">
+             <h4 className="font-bold text-white mb-4">주간 성과 트렌드</h4>
+             <div className="h-40 w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={dummyTrendData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#555" vertical={false} />
+                    <XAxis dataKey="name" stroke="#999" fontSize={10} />
+                    <YAxis stroke="#999" fontSize={10} />
+                    <Line type="monotone" dataKey="roas" stroke="#F05519" strokeWidth={2} dot={{r:3}} />
+                    <Line type="monotone" dataKey="cost" stroke="#8884d8" strokeWidth={2} dot={false} />
+                  </LineChart>
+                </ResponsiveContainer>
+             </div>
+          </div>
+
+          <div className="bg-[#F05519]/10 p-4 rounded-lg text-center">
+             <p className="text-[#F05519] text-sm font-bold">
+               "실제 분석에서는 사용자의 데이터를 기반으로 더 구체적인 인사이트와 키워드 추천이 제공됩니다."
+             </p>
+          </div>
+        </div>
+        
+        {/* Footer */}
+        <div className="p-4 border-t border-gray-700 flex justify-end">
+           <button onClick={onClose} className="px-6 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded font-medium">닫기</button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const FileUploadZone = ({ 
   label, 
   subtext,
@@ -556,6 +650,7 @@ export const NaverSearchAds = ({ apiKey }: NaverSearchAdsProps) => {
   const [files, setFiles] = useState<UploadedFiles>({});
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [result, setResult] = useState<AnalysisResult | null>(null);
+  const [showExample, setShowExample] = useState(false);
   
   // --- SEO Optimization ---
   useEffect(() => {
@@ -574,30 +669,49 @@ export const NaverSearchAds = ({ apiKey }: NaverSearchAdsProps) => {
     updateMeta('description', '네이버 검색광고(파워링크) 성과를 AI가 무료로 분석해드립니다. 키워드 효율 진단, ROAS 최적화, 제외 키워드 추천까지 한 번에 확인하세요.');
     updateMeta('keywords', '네이버 검색광고 분석기, 파워링크 분석, 검색광고 최적화, 키워드 광고 분석, 네이버 광고 ROAS');
 
-    // Schema Markup for FAQ
-    const schemaId = 'schema-faq-search';
+    // Expert Schema Markup (Service + FAQ)
+    const schemaId = 'schema-search-expert';
     const oldSchema = document.getElementById(schemaId);
     if (oldSchema) oldSchema.remove();
 
     const schemaData = {
       "@context": "https://schema.org",
-      "@type": "FAQPage",
-      "mainEntity": [
+      "@graph": [
         {
-          "@type": "Question",
-          "name": "네이버 검색광고 분석기는 어떤 데이터를 분석하나요?",
-          "acceptedAnswer": {
-            "@type": "Answer",
-            "text": "캠페인 리포트, 키워드(검색어) 리포트, 그리고 디바이스별 성과 데이터를 종합 분석하여 비용 누수 지점과 기회 요인을 찾아냅니다."
+          "@type": "Service",
+          "name": "네이버 검색광고 AI 분석 서비스",
+          "serviceType": "Advertising Analysis",
+          "provider": {
+            "@type": "Organization",
+            "name": "AdAiAn"
+          },
+          "description": "파워링크 캠페인, 키워드, 디바이스 데이터를 종합 분석하여 비용 절감 및 매출 증대 전략을 제안하는 AI 서비스입니다.",
+          "offers": {
+              "@type": "Offer",
+              "price": "0",
+              "priceCurrency": "KRW"
           }
         },
         {
-          "@type": "Question",
-          "name": "대행사 없이 직접 최적화가 가능한가요?",
-          "acceptedAnswer": {
-            "@type": "Answer",
-            "text": "네, AdAiAn은 AI가 직접 '제외해야 할 키워드'와 '입찰가를 조정해야 할 캠페인'을 구체적으로 알려주므로 초보자도 쉽게 성과를 개선할 수 있습니다."
-          }
+          "@type": "FAQPage",
+          "mainEntity": [
+            {
+              "@type": "Question",
+              "name": "네이버 검색광고 분석기는 어떤 데이터를 분석하나요?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "캠페인 리포트, 키워드(검색어) 리포트, 그리고 디바이스별 성과 데이터를 종합 분석하여 비용 누수 지점과 기회 요인을 찾아냅니다."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "대행사 없이 직접 최적화가 가능한가요?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "네, AdAiAn은 AI가 직접 '제외해야 할 키워드'와 '입찰가를 조정해야 할 캠페인'을 구체적으로 알려주므로 초보자도 쉽게 성과를 개선할 수 있습니다."
+              }
+            }
+          ]
         }
       ]
     };
@@ -607,6 +721,11 @@ export const NaverSearchAds = ({ apiKey }: NaverSearchAdsProps) => {
     script.type = 'application/ld+json';
     script.innerHTML = JSON.stringify(schemaData);
     document.head.appendChild(script);
+    
+    return () => {
+        const el = document.getElementById(schemaId);
+        if(el) el.remove();
+    };
 
   }, []);
 
@@ -657,6 +776,8 @@ export const NaverSearchAds = ({ apiKey }: NaverSearchAdsProps) => {
 
   return (
     <div className="animate-fade-in">
+      {showExample && <ExampleReportModal onClose={() => setShowExample(false)} />}
+      
       {!result && !isAnalyzing && (
         <div className="max-w-3xl mx-auto">
           <div className="mb-8">
@@ -708,7 +829,19 @@ export const NaverSearchAds = ({ apiKey }: NaverSearchAdsProps) => {
           >
             AI 분석 실행하기
           </button>
+          
           <DataGuide />
+
+          {/* Report Example Trigger */}
+          <div className="mt-8 flex justify-center">
+            <button 
+              onClick={() => setShowExample(true)}
+              className="flex items-center gap-2 px-6 py-3 rounded-full border border-gray-600 hover:border-[#F05519] text-gray-300 hover:text-white transition-all bg-[#2d2f2e] shadow-lg"
+            >
+              <span className="text-xl">📊</span>
+              <span className="font-medium">분석 결과 리포트 예시 보기</span>
+            </button>
+          </div>
           
           {/* FAQ Section */}
           <FAQSection />

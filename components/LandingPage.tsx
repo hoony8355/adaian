@@ -25,46 +25,75 @@ export const LandingPage = () => {
     updateMeta('description', '광고 성과 인공지능 분석을 무료로 시작하세요. 네이버 검색광고, GFA, SNS 광고 데이터를 AI가 분석하여 매출 상승을 위한 실행 가이드를 제공합니다.');
     updateMeta('keywords', '광고 성과 인공지능 분석, 광고 성과 AI 분석, 마케팅 자동화, 광고 효율 최적화, 네이버 광고 분석');
 
-    // 2. JSON-LD Schema (FAQ)
-    const schemaId = 'schema-faq-landing';
+    // 2. Expert JSON-LD Schema (SoftwareApplication + FAQPage)
+    const schemaId = 'schema-landing-expert';
     const oldSchema = document.getElementById(schemaId);
     if (oldSchema) oldSchema.remove();
 
     const schemaData = {
       "@context": "https://schema.org",
-      "@type": "FAQPage",
-      "mainEntity": [
+      "@graph": [
         {
-          "@type": "Question",
-          "name": "AdAiAn의 광고 성과 AI 분석은 정말 무료인가요?",
-          "acceptedAnswer": {
-            "@type": "Answer",
-            "text": "네, 현재 베타 서비스 기간 동안 AdAiAn의 모든 광고 성과 인공지능 분석 기능은 무료로 제공됩니다. 네이버 검색광고 및 GFA 데이터를 횟수 제한 없이 분석할 수 있습니다."
-          }
+            "@type": "SoftwareApplication",
+            "name": "AdAiAn (Advertising Data AI Analyzer)",
+            "applicationCategory": "BusinessApplication",
+            "operatingSystem": "Web Browser",
+            "offers": {
+                "@type": "Offer",
+                "price": "0",
+                "priceCurrency": "KRW",
+                "availability": "https://schema.org/InStock"
+            },
+            "description": "인공지능(AI) 기반 광고 데이터 분석 솔루션. 네이버 검색광고 및 GFA 데이터를 자동으로 분석하여 ROAS 최적화 전략과 실행 가이드를 무료로 제공합니다.",
+            "featureList": [
+                "네이버 검색광고 분석",
+                "네이버 GFA 성과 진단",
+                "AI 기반 ROAS 최적화 제안",
+                "광고비 누수 탐지"
+            ],
+            "screenshot": "https://adaian.vercel.app/og-image.png",
+            "provider": {
+                "@type": "Organization",
+                "name": "AdAiAn",
+                "url": "https://adaian.vercel.app"
+            }
         },
         {
-          "@type": "Question",
-          "name": "광고 성과 인공지능 분석은 어떤 데이터를 사용하나요?",
-          "acceptedAnswer": {
-            "@type": "Answer",
-            "text": "사용자가 직접 업로드한 광고 매체(네이버, 메타 등)의 엑셀 리포트(CSV) 데이터를 기반으로 분석합니다. 데이터는 분석 즉시 휘발되며 서버에 저장되지 않아 안전합니다."
-          }
-        },
-        {
-          "@type": "Question",
-          "name": "AI 분석 결과는 얼마나 정확한가요?",
-          "acceptedAnswer": {
-            "@type": "Answer",
-            "text": "AdAiAn은 Google Gemini 최신 모델을 기반으로 하며, 수만 건의 광고 캠페인 데이터를 학습한 로직을 적용했습니다. 단순 통계를 넘어 성과 하락의 원인과 구체적인 해결책을 95% 이상의 논리적 정확도로 제안합니다."
-          }
-        },
-        {
-          "@type": "Question",
-          "name": "대행사를 쓰고 있는데 이 툴이 필요한가요?",
-          "acceptedAnswer": {
-            "@type": "Answer",
-            "text": "네, 유용합니다. 대행사 리포트 외에 제3자의 객관적인 시각으로 광고 성과 AI 분석 결과를 받아보세요. 대행사가 놓친 키워드나 매체 효율 누수 지점을 찾아낼 수 있습니다."
-          }
+          "@type": "FAQPage",
+          "mainEntity": [
+            {
+              "@type": "Question",
+              "name": "AdAiAn의 광고 성과 AI 분석은 정말 무료인가요?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "네, 현재 베타 서비스 기간 동안 AdAiAn의 모든 광고 성과 인공지능 분석 기능은 무료로 제공됩니다. 네이버 검색광고 및 GFA 데이터를 횟수 제한 없이 분석할 수 있습니다."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "광고 성과 인공지능 분석은 어떤 데이터를 사용하나요?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "사용자가 직접 업로드한 광고 매체(네이버, 메타 등)의 엑셀 리포트(CSV) 데이터를 기반으로 분석합니다. 데이터는 분석 즉시 휘발되며 서버에 저장되지 않아 안전합니다."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "AI 분석 결과는 얼마나 정확한가요?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "AdAiAn은 Google Gemini 최신 모델을 기반으로 하며, 수만 건의 광고 캠페인 데이터를 학습한 로직을 적용했습니다. 단순 통계를 넘어 성과 하락의 원인과 구체적인 해결책을 95% 이상의 논리적 정확도로 제안합니다."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "대행사를 쓰고 있는데 이 툴이 필요한가요?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "네, 유용합니다. 대행사 리포트 외에 제3자의 객관적인 시각으로 광고 성과 AI 분석 결과를 받아보세요. 대행사가 놓친 키워드나 매체 효율 누수 지점을 찾아낼 수 있습니다."
+              }
+            }
+          ]
         }
       ]
     };
@@ -76,7 +105,10 @@ export const LandingPage = () => {
     document.head.appendChild(script);
 
     return () => {
-      // Cleanup on unmount if needed, mostly fine to leave until next page change overwrites
+      // Cleanup is usually not strictly required in single page flow as it gets overwritten, 
+      // but keeping it clean prevents duplicate IDs if re-mounted rapidly.
+      const el = document.getElementById(schemaId);
+      if(el) el.remove();
     };
   }, []);
 

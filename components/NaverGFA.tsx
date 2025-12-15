@@ -49,6 +49,110 @@ const LoadingScreen = () => {
     );
 };
 
+const GFAExampleReportModal = ({ onClose }: { onClose: () => void }) => {
+  return (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-fade-in">
+      <div className="bg-[#2d2f2e] w-full max-w-4xl max-h-[90vh] rounded-xl border border-gray-600 shadow-2xl flex flex-col">
+        {/* Header */}
+        <div className="flex justify-between items-center p-6 border-b border-gray-700">
+          <div>
+            <h2 className="text-xl font-bold text-white">📊 GFA 분석 리포트 예시</h2>
+            <p className="text-sm text-gray-400">성과형 디스플레이 광고의 소재/타겟 심층 분석 결과입니다.</p>
+          </div>
+          <button onClick={onClose} className="text-gray-400 hover:text-white">
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+          </button>
+        </div>
+
+        {/* Content */}
+        <div className="overflow-y-auto p-6 space-y-6">
+          {/* 1. 요약 */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="bg-[#454746] p-4 rounded-lg border border-gray-700">
+               <p className="text-gray-400 text-xs">총 매출액</p>
+               <p className="text-lg font-bold text-white">₩8,450,000</p>
+            </div>
+            <div className="bg-[#454746] p-4 rounded-lg border border-gray-700">
+               <p className="text-gray-400 text-xs">평균 ROAS</p>
+               <p className="text-lg font-bold text-[#03C75A]">285%</p>
+            </div>
+             <div className="bg-[#454746] p-4 rounded-lg border border-gray-700">
+               <p className="text-gray-400 text-xs">총 전환수</p>
+               <p className="text-lg font-bold text-white">142건</p>
+            </div>
+             <div className="bg-[#454746] p-4 rounded-lg border border-gray-700">
+               <p className="text-gray-400 text-xs">CPM</p>
+               <p className="text-lg font-bold text-white">₩6,500</p>
+            </div>
+          </div>
+
+          {/* 2. 퍼널 진단 (Mock Visual) */}
+          <div className="bg-[#454746] p-6 rounded-xl border border-gray-700">
+              <h3 className="font-bold text-white mb-4">📢 퍼널(Funnel) 진단</h3>
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-2 text-center">
+                  <div className="bg-[#2d2f2e] p-2 rounded">
+                      <span className="text-xs text-gray-400">CPM</span><br/>
+                      <span className="font-bold text-white">Good</span>
+                  </div>
+                   <div className="bg-[#2d2f2e] p-2 rounded border border-red-500/50">
+                      <span className="text-xs text-gray-400">CTR</span><br/>
+                      <span className="font-bold text-red-400">1.2% (Low)</span>
+                  </div>
+                   <div className="bg-[#2d2f2e] p-2 rounded">
+                      <span className="text-xs text-gray-400">CPC</span><br/>
+                      <span className="font-bold text-white">₩350</span>
+                  </div>
+                   <div className="bg-[#2d2f2e] p-2 rounded border border-[#03C75A]/50">
+                      <span className="text-xs text-gray-400">CVR</span><br/>
+                      <span className="font-bold text-[#03C75A]">3.5% (High)</span>
+                  </div>
+                   <div className="bg-[#2d2f2e] p-2 rounded">
+                      <span className="text-xs text-gray-400">ROAS</span><br/>
+                      <span className="font-bold text-white">285%</span>
+                  </div>
+              </div>
+              <div className="mt-4 text-sm text-gray-300 bg-gray-900/50 p-3 rounded">
+                  <strong>AI 진단:</strong> 클릭률(CTR)이 낮지만 전환율(CVR)은 우수합니다. 이는 <strong>소재(이미지) 매력도가 떨어짐</strong>을 의미합니다. 소재만 개선하면 ROAS가 350% 이상으로 상승할 잠재력이 있습니다.
+              </div>
+          </div>
+
+          {/* 3. 소재 분석 예시 */}
+          <div className="bg-[#454746] p-6 rounded-xl border border-gray-700">
+              <h3 className="font-bold text-white mb-4">🏆 소재(Creative) 효율 분석</h3>
+              <table className="w-full text-sm text-left text-gray-400">
+                <thead className="bg-gray-700/50 text-xs uppercase">
+                    <tr><th className="p-2">소재명</th><th className="p-2">비용</th><th className="p-2">ROAS</th><th className="p-2">빈도</th></tr>
+                </thead>
+                <tbody>
+                    <tr className="border-b border-gray-700">
+                        <td className="p-2 text-white">Review_Image_01</td>
+                        <td className="p-2">₩500,000</td>
+                        <td className="p-2 text-[#03C75A] font-bold">420%</td>
+                        <td className="p-2">1.5</td>
+                    </tr>
+                    <tr className="border-b border-gray-700">
+                        <td className="p-2 text-white">Event_Banner_B</td>
+                        <td className="p-2">₩800,000</td>
+                        <td className="p-2 text-red-400 font-bold">95%</td>
+                        <td className="p-2 text-red-400 font-bold">4.2</td>
+                    </tr>
+                </tbody>
+              </table>
+              <div className="mt-2 text-xs text-red-300">
+                 * Event_Banner_B는 빈도(Frequency)가 4.2회로 높아져 효율이 급감했습니다. 교체가 시급합니다.
+              </div>
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="p-4 border-t border-gray-700 flex justify-end">
+           <button onClick={onClose} className="px-6 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded font-medium">닫기</button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const FileUploadZone = ({ label, subtext, file, onFileSelect }: { label: string, subtext: string, file?: File, onFileSelect: (f: File) => void }) => {
     const inputRef = useRef<HTMLInputElement>(null);
     return (
@@ -436,6 +540,7 @@ export const NaverGFA = ({ apiKey }: NaverGFAProps) => {
     const [files, setFiles] = useState<UploadedFiles>({});
     const [isAnalyzing, setIsAnalyzing] = useState(false);
     const [result, setResult] = useState<AnalysisResult | null>(null);
+    const [showExample, setShowExample] = useState(false);
 
     // --- SEO Optimization ---
     useEffect(() => {
@@ -454,30 +559,57 @@ export const NaverGFA = ({ apiKey }: NaverGFAProps) => {
         updateMeta('description', '네이버 GFA(성과형 디스플레이) 광고 성과를 AI가 무료로 분석합니다. 소재 피로도 진단, 타겟 효율 분석, ROAS 최적화 가이드를 제공합니다.');
         updateMeta('keywords', '네이버 GFA 분석기, GFA 성과 분석, 네이버 디스플레이 광고, GFA 최적화, 광고 소재 분석');
 
-        // Schema Markup for FAQ
-        const schemaId = 'schema-faq-gfa';
+        // Expert Schema Markup (Service + FAQ)
+        const schemaId = 'schema-gfa-expert';
         const oldSchema = document.getElementById(schemaId);
         if (oldSchema) oldSchema.remove();
 
         const schemaData = {
             "@context": "https://schema.org",
-            "@type": "FAQPage",
-            "mainEntity": [
+            "@graph": [
                 {
-                    "@type": "Question",
-                    "name": "네이버 GFA 분석기는 무엇을 진단하나요?",
-                    "acceptedAnswer": {
-                        "@type": "Answer",
-                        "text": "광고 소재(이미지/영상)의 피로도, 연령/성별 타겟 효율, 그리고 캠페인 퍼널(CPM-CTR-CVR) 단계별 이탈률을 집중 진단합니다."
+                    "@type": "Service",
+                    "name": "네이버 GFA AI 분석 서비스",
+                    "serviceType": "Display Advertising Analysis",
+                    "provider": {
+                        "@type": "Organization",
+                        "name": "AdAiAn"
+                    },
+                    "description": "네이버 성과형 디스플레이 광고(GFA)의 소재 피로도, 타겟 효율, 캠페인 퍼널을 AI가 분석하여 ROAS 최적화 가이드를 제공합니다.",
+                    "offers": {
+                        "@type": "Offer",
+                        "price": "0",
+                        "priceCurrency": "KRW"
                     }
                 },
                 {
-                    "@type": "Question",
-                    "name": "ROAS를 높이려면 어떻게 해야 하나요?",
-                    "acceptedAnswer": {
-                        "@type": "Answer",
-                        "text": "AdAiAn의 분석 리포트를 통해 '효율이 낮은 연령대'를 제외하고, '성과가 좋은 소재'에 예산을 집중하는 구체적인 액션 플랜을 따르시면 됩니다."
-                    }
+                    "@type": "FAQPage",
+                    "mainEntity": [
+                        {
+                            "@type": "Question",
+                            "name": "네이버 GFA 분석기는 어떤 점이 특별한가요?",
+                            "acceptedAnswer": {
+                                "@type": "Answer",
+                                "text": "단순 성과뿐만 아니라 '소재 피로도(빈도 분석)'와 '연령/타겟 효율'을 중점적으로 분석하여, 이미지가 지루해져서 효율이 떨어지는 시점을 정확히 짚어냅니다."
+                            }
+                        },
+                        {
+                            "@type": "Question",
+                            "name": "소재(이미지) 교체 시기를 알려주나요?",
+                            "acceptedAnswer": {
+                                "@type": "Answer",
+                                "text": "네, AI가 빈도(Frequency)와 클릭률(CTR) 추이를 분석하여 '소재 교체 필요' 알람을 제공합니다."
+                            }
+                        },
+                        {
+                            "@type": "Question",
+                            "name": "어떤 타겟이 효율적인지 알 수 있나요?",
+                            "acceptedAnswer": {
+                                "@type": "Answer",
+                                "text": "업로드하신 데모그래픽 리포트를 기반으로 성별, 연령대, 상세 타겟 중 ROAS가 높은 'Winner 타겟'을 추출해 드립니다."
+                            }
+                        }
+                    ]
                 }
             ]
         };
@@ -487,6 +619,11 @@ export const NaverGFA = ({ apiKey }: NaverGFAProps) => {
         script.type = 'application/ld+json';
         script.innerHTML = JSON.stringify(schemaData);
         document.head.appendChild(script);
+
+        return () => {
+            const el = document.getElementById(schemaId);
+            if(el) el.remove();
+        };
 
     }, []);
 
@@ -528,6 +665,8 @@ export const NaverGFA = ({ apiKey }: NaverGFAProps) => {
 
     return (
         <div className="animate-fade-in max-w-4xl mx-auto">
+            {showExample && <GFAExampleReportModal onClose={() => setShowExample(false)} />}
+            
             {!result && !isAnalyzing && (
                 <>
                     <div className="mb-8">
@@ -584,6 +723,17 @@ export const NaverGFA = ({ apiKey }: NaverGFAProps) => {
                     </button>
                     
                     <GFADataGuide />
+
+                    {/* Report Example Trigger */}
+                    <div className="mt-8 flex justify-center">
+                        <button 
+                            onClick={() => setShowExample(true)}
+                            className="flex items-center gap-2 px-6 py-3 rounded-full border border-gray-600 hover:border-[#03C75A] text-gray-300 hover:text-white transition-all bg-[#2d2f2e] shadow-lg"
+                        >
+                            <span className="text-xl">📊</span>
+                            <span className="font-medium">GFA 분석 결과 예시 보기</span>
+                        </button>
+                    </div>
 
                     {/* FAQ Section */}
                     <FAQSection />
