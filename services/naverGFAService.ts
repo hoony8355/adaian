@@ -99,10 +99,12 @@ const cleanJson = (text: string): string => {
 export const analyzeNaverGFAData = async (
   campaignFile: string, // File 2: Campaign/Date (Trend)
   creativeFile: string, // File 3: Creative (Reach/Freq)
-  audienceFile: string  // File 1: Audience/Group
+  audienceFile: string,  // File 1: Audience/Group
+  apiKey: string
 ): Promise<AnalysisResult> => {
 
-  if (!process.env.API_KEY) {
+  const effectiveApiKey = apiKey || process.env.API_KEY;
+  if (!effectiveApiKey) {
     throw new Error("API Key is missing.");
   }
 
@@ -120,7 +122,7 @@ export const analyzeNaverGFAData = async (
     - Avg CVR (Conv/Click): ${realStats.avgCvr.toFixed(2)}%
   ` : '';
 
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  const ai = new GoogleGenAI({ apiKey: effectiveApiKey });
   const MAX_CONTEXT_LENGTH = 50000; // 50k chars per file to be safe
 
   const prompt = `

@@ -491,14 +491,125 @@ const ResultDashboard = ({ result }: { result: AnalysisResult }) => {
   );
 };
 
+// --- FAQ SECTION COMPONENT ---
+const FAQSection = () => {
+    const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(null);
+    
+    const faqs = [
+        {
+            q: "네이버 검색광고 분석기는 어떤 데이터를 분석하나요?",
+            a: "캠페인별 성과, 키워드(검색어) 효율, 그리고 PC/모바일 디바이스별 성과 데이터를 종합적으로 분석하여 최적화 포인트를 찾아냅니다."
+        },
+        {
+            q: "분석하려면 어떤 리포트를 다운로드해야 하나요?",
+            a: "네이버 광고 시스템에서 1. 캠페인 리포트(주별), 2. 광고그룹/매체 리포트, 3. 검색어 리포트 3가지를 CSV형태로 다운로드하시면 됩니다."
+        },
+        {
+            q: "대행사 없이 직접 최적화가 가능한가요?",
+            a: "네, AdAiAn은 '비용은 높지만 전환이 없는 키워드'를 자동으로 식별하고, '제외 키워드' 추천을 통해 광고비 누수를 즉시 막을 수 있도록 돕습니다."
+        },
+        {
+            q: "분석 결과에서 ROAS 개선 방법을 알려주나요?",
+            a: "단순 통계가 아닌 AI가 직접 진단한 '실행 액션'을 제공합니다. 예: '모바일 입찰가 20% 하향 조정 필요', '키워드 [OOO] OFF 권장' 등 구체적인 가이드를 드립니다."
+        }
+    ];
+
+    const toggleFaq = (index: number) => {
+        setOpenFaqIndex(openFaqIndex === index ? null : index);
+    };
+
+    return (
+        <section className="mt-16 border-t border-gray-700 pt-16 mb-24">
+            <h3 className="text-2xl font-bold text-center text-white mb-2">네이버 검색광고 분석 자주 묻는 질문</h3>
+            <p className="text-center text-gray-400 mb-8">검색광고 최적화에 대해 궁금한 점을 확인하세요.</p>
+            <div className="max-w-3xl mx-auto space-y-4">
+                {faqs.map((item, idx) => (
+                    <div key={idx} className="border border-gray-700 rounded-lg bg-[#373938] overflow-hidden">
+                        <button
+                            onClick={() => toggleFaq(idx)}
+                            className="w-full px-6 py-4 text-left flex justify-between items-center focus:outline-none hover:bg-gray-700/50 transition-colors"
+                        >
+                            <span className="font-medium text-white">{item.q}</span>
+                            <span className={`transform transition-transform ${openFaqIndex === idx ? 'rotate-180' : ''} text-[#F05519]`}>
+                                ▼
+                            </span>
+                        </button>
+                        {openFaqIndex === idx && (
+                            <div className="px-6 py-4 bg-[#454746] text-gray-300 text-sm leading-relaxed border-t border-gray-700 animate-fade-in">
+                                {item.a}
+                            </div>
+                        )}
+                    </div>
+                ))}
+            </div>
+        </section>
+    );
+};
+
 // --- MAIN COMPONENT ---
 
-export const NaverSearchAds = () => {
+interface NaverSearchAdsProps {
+  apiKey: string;
+}
+
+export const NaverSearchAds = ({ apiKey }: NaverSearchAdsProps) => {
   const [files, setFiles] = useState<UploadedFiles>({});
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [result, setResult] = useState<AnalysisResult | null>(null);
   
-  // 10MB limit for browser-side processing safety
+  // --- SEO Optimization ---
+  useEffect(() => {
+    document.title = "네이버 검색광고 분석기 - AdAiAn | 파워링크 AI 진단 & 최적화";
+    
+    const updateMeta = (name: string, content: string) => {
+      let element = document.querySelector(`meta[name="${name}"]`);
+      if (!element) {
+        element = document.createElement('meta');
+        element.setAttribute('name', name);
+        document.head.appendChild(element);
+      }
+      element.setAttribute('content', content);
+    };
+
+    updateMeta('description', '네이버 검색광고(파워링크) 성과를 AI가 무료로 분석해드립니다. 키워드 효율 진단, ROAS 최적화, 제외 키워드 추천까지 한 번에 확인하세요.');
+    updateMeta('keywords', '네이버 검색광고 분석기, 파워링크 분석, 검색광고 최적화, 키워드 광고 분석, 네이버 광고 ROAS');
+
+    // Schema Markup for FAQ
+    const schemaId = 'schema-faq-search';
+    const oldSchema = document.getElementById(schemaId);
+    if (oldSchema) oldSchema.remove();
+
+    const schemaData = {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "네이버 검색광고 분석기는 어떤 데이터를 분석하나요?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "캠페인 리포트, 키워드(검색어) 리포트, 그리고 디바이스별 성과 데이터를 종합 분석하여 비용 누수 지점과 기회 요인을 찾아냅니다."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "대행사 없이 직접 최적화가 가능한가요?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "네, AdAiAn은 AI가 직접 '제외해야 할 키워드'와 '입찰가를 조정해야 할 캠페인'을 구체적으로 알려주므로 초보자도 쉽게 성과를 개선할 수 있습니다."
+          }
+        }
+      ]
+    };
+
+    const script = document.createElement('script');
+    script.id = schemaId;
+    script.type = 'application/ld+json';
+    script.innerHTML = JSON.stringify(schemaData);
+    document.head.appendChild(script);
+
+  }, []);
+
   const MAX_FILE_SIZE = 10 * 1024 * 1024; 
 
   const readFileAsText = (file: File): Promise<string> => {
@@ -516,7 +627,6 @@ export const NaverSearchAds = () => {
       return;
     }
 
-    // Pre-check for file sizes
     const totalSize = files.campaign.size + files.device.size + files.keywords.size;
     if (totalSize > MAX_FILE_SIZE) {
        alert("업로드하는 과정에서 너무 데이터가 큽니다. 기간조정이나 비용필터를통해 데이터를 간소화 해주세요.");
@@ -530,7 +640,7 @@ export const NaverSearchAds = () => {
         readFileAsText(files.device),
         readFileAsText(files.keywords)
       ]);
-      const data = await analyzeNaverSearchData(campaignText, deviceText, keywordText);
+      const data = await analyzeNaverSearchData(campaignText, deviceText, keywordText, apiKey);
       setResult(data);
     } catch (error) {
       console.error(error);
@@ -550,7 +660,7 @@ export const NaverSearchAds = () => {
       {!result && !isAnalyzing && (
         <div className="max-w-3xl mx-auto">
           <div className="mb-8">
-            <h2 className="text-2xl font-bold mb-2">데이터 업로드 (Naver 검색광고)</h2>
+            <h1 className="text-3xl font-bold mb-2">네이버 검색광고 분석기</h1>
             <p className="text-gray-400">네이버 검색광고 관리자에서 다운로드한 3가지 리포트를 업로드해주세요.</p>
             <div className="mt-4 bg-[#454746] p-4 rounded text-sm text-gray-300 border border-gray-600 space-y-2">
               <p className="flex items-start gap-2">
@@ -599,6 +709,9 @@ export const NaverSearchAds = () => {
             AI 분석 실행하기
           </button>
           <DataGuide />
+          
+          {/* FAQ Section */}
+          <FAQSection />
         </div>
       )}
       {isAnalyzing && <LoadingScreen />}

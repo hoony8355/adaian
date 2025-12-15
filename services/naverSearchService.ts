@@ -148,10 +148,12 @@ const cleanJson = (text: string): string => {
 export const analyzeNaverSearchData = async (
   campaignData: string,
   deviceData: string,
-  keywordData: string
+  keywordData: string,
+  apiKey: string
 ): Promise<AnalysisResult> => {
   
-  if (!process.env.API_KEY) {
+  const effectiveApiKey = apiKey || process.env.API_KEY;
+  if (!effectiveApiKey) {
     throw new Error("API Key is missing.");
   }
 
@@ -171,7 +173,7 @@ export const analyzeNaverSearchData = async (
     - Total ROAS: ${realStats.totalRoas.toFixed(2)}%
   ` : '';
 
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  const ai = new GoogleGenAI({ apiKey: effectiveApiKey });
 
   // 3. Construct Prompt with Optimized Data
   // We send full Campaign/Device data (usually small) but ONLY top keywords.

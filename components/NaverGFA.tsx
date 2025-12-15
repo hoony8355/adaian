@@ -372,10 +372,123 @@ const Dashboard = ({ result }: { result: AnalysisResult }) => {
     );
 };
 
-export const NaverGFA = () => {
+// --- FAQ SECTION COMPONENT (GFA Specific) ---
+const FAQSection = () => {
+    const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(null);
+    
+    const faqs = [
+        {
+            q: "네이버 GFA 분석기는 어떤 점이 특별한가요?",
+            a: "단순 성과뿐만 아니라 '소재 피로도(빈도 분석)'와 '연령/타겟 효율'을 중점적으로 분석하여, 이미지가 지루해져서 효율이 떨어지는 시점을 정확히 짚어냅니다."
+        },
+        {
+            q: "소재(이미지) 교체 시기를 알려주나요?",
+            a: "네, AI가 빈도(Frequency)와 클릭률(CTR) 추이를 분석하여 '소재 교체 필요' 알람을 제공합니다."
+        },
+        {
+            q: "어떤 타겟이 효율적인지 알 수 있나요?",
+            a: "업로드하신 데모그래픽 리포트를 기반으로 성별, 연령대, 상세 타겟 중 ROAS가 높은 'Winner 타겟'을 추출해 드립니다."
+        },
+        {
+            q: "데이터가 너무 많은데 분석이 가능한가요?",
+            a: "네, AdAiAn은 대용량 CSV 처리 로직을 탑재하고 있어 수만 행의 GFA 데이터도 빠르고 정확하게 분석할 수 있습니다."
+        }
+    ];
+
+    const toggleFaq = (index: number) => {
+        setOpenFaqIndex(openFaqIndex === index ? null : index);
+    };
+
+    return (
+        <section className="mt-16 border-t border-gray-700 pt-16 mb-24">
+            <h3 className="text-2xl font-bold text-center text-white mb-2">네이버 GFA 분석 자주 묻는 질문</h3>
+            <p className="text-center text-gray-400 mb-8">성과형 디스플레이 광고 최적화에 대해 확인하세요.</p>
+            <div className="max-w-3xl mx-auto space-y-4">
+                {faqs.map((item, idx) => (
+                    <div key={idx} className="border border-gray-700 rounded-lg bg-[#373938] overflow-hidden">
+                        <button
+                            onClick={() => toggleFaq(idx)}
+                            className="w-full px-6 py-4 text-left flex justify-between items-center focus:outline-none hover:bg-gray-700/50 transition-colors"
+                        >
+                            <span className="font-medium text-white">{item.q}</span>
+                            <span className={`transform transition-transform ${openFaqIndex === idx ? 'rotate-180' : ''} text-[#03C75A]`}>
+                                ▼
+                            </span>
+                        </button>
+                        {openFaqIndex === idx && (
+                            <div className="px-6 py-4 bg-[#454746] text-gray-300 text-sm leading-relaxed border-t border-gray-700 animate-fade-in">
+                                {item.a}
+                            </div>
+                        )}
+                    </div>
+                ))}
+            </div>
+        </section>
+    );
+};
+
+
+interface NaverGFAProps {
+  apiKey: string;
+}
+
+export const NaverGFA = ({ apiKey }: NaverGFAProps) => {
     const [files, setFiles] = useState<UploadedFiles>({});
     const [isAnalyzing, setIsAnalyzing] = useState(false);
     const [result, setResult] = useState<AnalysisResult | null>(null);
+
+    // --- SEO Optimization ---
+    useEffect(() => {
+        document.title = "네이버 GFA 분석기 - AdAiAn | 성과형 디스플레이 광고 AI 진단";
+        
+        const updateMeta = (name: string, content: string) => {
+            let element = document.querySelector(`meta[name="${name}"]`);
+            if (!element) {
+                element = document.createElement('meta');
+                element.setAttribute('name', name);
+                document.head.appendChild(element);
+            }
+            element.setAttribute('content', content);
+        };
+
+        updateMeta('description', '네이버 GFA(성과형 디스플레이) 광고 성과를 AI가 무료로 분석합니다. 소재 피로도 진단, 타겟 효율 분석, ROAS 최적화 가이드를 제공합니다.');
+        updateMeta('keywords', '네이버 GFA 분석기, GFA 성과 분석, 네이버 디스플레이 광고, GFA 최적화, 광고 소재 분석');
+
+        // Schema Markup for FAQ
+        const schemaId = 'schema-faq-gfa';
+        const oldSchema = document.getElementById(schemaId);
+        if (oldSchema) oldSchema.remove();
+
+        const schemaData = {
+            "@context": "https://schema.org",
+            "@type": "FAQPage",
+            "mainEntity": [
+                {
+                    "@type": "Question",
+                    "name": "네이버 GFA 분석기는 무엇을 진단하나요?",
+                    "acceptedAnswer": {
+                        "@type": "Answer",
+                        "text": "광고 소재(이미지/영상)의 피로도, 연령/성별 타겟 효율, 그리고 캠페인 퍼널(CPM-CTR-CVR) 단계별 이탈률을 집중 진단합니다."
+                    }
+                },
+                {
+                    "@type": "Question",
+                    "name": "ROAS를 높이려면 어떻게 해야 하나요?",
+                    "acceptedAnswer": {
+                        "@type": "Answer",
+                        "text": "AdAiAn의 분석 리포트를 통해 '효율이 낮은 연령대'를 제외하고, '성과가 좋은 소재'에 예산을 집중하는 구체적인 액션 플랜을 따르시면 됩니다."
+                    }
+                }
+            ]
+        };
+
+        const script = document.createElement('script');
+        script.id = schemaId;
+        script.type = 'application/ld+json';
+        script.innerHTML = JSON.stringify(schemaData);
+        document.head.appendChild(script);
+
+    }, []);
 
     const readFileAsText = (file: File): Promise<string> => {
         return new Promise((resolve, reject) => {
@@ -398,7 +511,7 @@ export const NaverGFA = () => {
                 readFileAsText(files.gfaCreative),
                 readFileAsText(files.gfaAudience)
             ]);
-            const data = await analyzeNaverGFAData(campaignText, creativeText, audienceText);
+            const data = await analyzeNaverGFAData(campaignText, creativeText, audienceText, apiKey);
             setResult(data);
         } catch (error) {
             console.error(error);
@@ -418,7 +531,7 @@ export const NaverGFA = () => {
             {!result && !isAnalyzing && (
                 <>
                     <div className="mb-8">
-                        <h2 className="text-2xl font-bold mb-2">데이터 업로드 (Naver GFA)</h2>
+                        <h1 className="text-3xl font-bold mb-2">네이버 GFA 분석기</h1>
                         <p className="text-gray-400">네이버 성과형 디스플레이 광고(GFA) 리포트 3종을 업로드해주세요.</p>
                         
                         <div className="mt-4 bg-[#454746] p-4 rounded text-sm text-gray-300 border border-gray-600 space-y-2">
@@ -471,6 +584,9 @@ export const NaverGFA = () => {
                     </button>
                     
                     <GFADataGuide />
+
+                    {/* FAQ Section */}
+                    <FAQSection />
                 </>
             )}
 
