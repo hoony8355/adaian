@@ -15,6 +15,21 @@ const COLORS = {
   primary: 'text-[#F05519]',
 };
 
+// Define URL Routes for SEO friendly navigation
+const ROUTES: Record<string, PageView> = {
+  '/': PageView.LANDING,
+  '/naver-search-analyzer': PageView.NAVER_SEARCH,
+  '/naver-gfa-analyzer': PageView.NAVER_GFA,
+  '/meta-ads-analyzer': PageView.META,
+  '/google-ads-analyzer': PageView.GOOGLE,
+  '/coupang-ads-analyzer': PageView.COUPANG,
+};
+
+// Helper to find path by page view
+const getPathByPage = (page: PageView): string => {
+  return Object.keys(ROUTES).find(key => ROUTES[key] === page) || '/';
+};
+
 // --- API Key Modal Component ---
 const ApiKeyModal = ({ onSave }: { onSave: (key: string) => void }) => {
   const [inputKey, setInputKey] = useState('');
@@ -109,15 +124,11 @@ export default function App() {
 
   // Initialize API Key Logic
   useEffect(() => {
-    // 1. Check if Env Variable exists (Vercel/Production)
-    // This process.env.API_KEY is defined in vite.config.ts
     const envKey = process.env.API_KEY;
-    
     if (envKey && envKey.trim() !== '') {
       setApiKey(envKey);
       setShowApiKeyModal(false);
     } else {
-      // 2. Check Local Storage
       const storedKey = localStorage.getItem('GEMINI_API_KEY');
       if (storedKey) {
         setApiKey(storedKey);
@@ -126,16 +137,49 @@ export default function App() {
     }
   }, []);
 
+  // --- ROUTING LOGIC ---
+  useEffect(() => {
+    // 1. Initial Load: Set Page based on URL
+    const currentPath = window.location.pathname;
+    // Simple matching logic
+    let matchedPage = PageView.LANDING;
+    // Check exact match first
+    if (ROUTES[currentPath]) {
+        matchedPage = ROUTES[currentPath];
+    } else {
+        // Fallback or fuzzy match could go here, for now default to Landing
+        // If logged in, maybe we want to preserve the URL? 
+        // We will handle navigation updates below.
+    }
+    setCurrentPage(matchedPage);
+
+    // 2. Handle Browser Back/Forward buttons
+    const handlePopState = () => {
+      const path = window.location.pathname;
+      const page = ROUTES[path] || PageView.LANDING;
+      setCurrentPage(page);
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
+  // Function to change page and URL
+  const navigateTo = (page: PageView) => {
+    const path = getPathByPage(page);
+    window.history.pushState({}, '', path);
+    setCurrentPage(page);
+    window.scrollTo(0, 0); // Scroll to top on navigation
+  };
+
   // Firebase Auth State Listener
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       if (currentUser) {
         setUser(currentUser);
         setViewState(ViewState.APP);
-        // Double check API key after successful login
         const envKey = process.env.API_KEY;
         const storedKey = localStorage.getItem('GEMINI_API_KEY');
-        // If Env Key is missing AND Local Storage is missing, show Modal
         if ((!envKey || envKey.trim() === '') && !storedKey) {
             setShowApiKeyModal(true);
         }
@@ -159,7 +203,6 @@ export default function App() {
     setIsLoginLoading(true);
     try {
       await loginWithGoogle();
-      // State change is handled by onAuthStateChanged
     } catch (error) {
       console.error("Login Error:", error);
       alert("로그인에 실패했습니다. 팝업 차단을 확인하거나 다시 시도해주세요.");
@@ -172,7 +215,7 @@ export default function App() {
       await logout();
       setUser(null);
       setViewState(ViewState.LOGIN);
-      setCurrentPage(PageView.LANDING);
+      navigateTo(PageView.LANDING); // Go back to landing on logout
     } catch (error) {
       console.error("Logout Error:", error);
     }
@@ -208,7 +251,7 @@ export default function App() {
         <>
           {showApiKeyModal && <ApiKeyModal onSave={handleSaveApiKey} />}
 
-          <Header currentPage={currentPage} setPage={setCurrentPage} />
+          <Header currentPage={currentPage} setPage={navigateTo} />
           
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2 flex justify-end">
             <div className="flex items-center gap-3 text-sm text-gray-400">
@@ -228,7 +271,7 @@ export default function App() {
 
           <footer className="border-t border-gray-700 mt-20 py-8 text-center text-gray-500 text-sm">
             <p>&copy; 2024 AdAiAn. All rights reserved.</p>
-            <p className="mt-2 text-xs">본 서비스는 베타 버전입니다. 실제 광고 데이터는 서버에 저장되지 않습니다.</p>
+            <p className="mt-2 text-xs">본 서비스에 사용되는 실제 광고 데이터는 서버에 저장되지 않습니다.</p>
           </footer>
         </>
       )}

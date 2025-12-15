@@ -86,21 +86,21 @@ const GFADataGuide = () => {
         desc: "일자별 추이와 퍼널 단계별 전환율을 분석합니다.",
         settings: "분석 단위: 캠페인 / 기간: 일(Daily)",
         metrics: "총 비용, 노출, 클릭, CTR, CPC, CPM, 구매완료수, 전환 매출액, ROAS",
-        imgSrc: "gfa_guide_images/guide1.png"
+        imgSrc: "/gfa_guide_images/guide1.png"
       },
       {
         title: "2. 소재(Creative) 분석용",
         desc: "소재별 피로도와 효율을 분석합니다.",
         settings: "분석 단위: 광고 소재 / 기간: 전체",
         metrics: "기본 지표 + 도달(Reach), 도달비용, 노출빈도(Frequency)",
-        imgSrc: "gfa_guide_images/guide2.png"
+        imgSrc: "/gfa_guide_images/guide2.png"
       },
       {
         title: "3. 타겟(Audience) 분석용",
         desc: "광고 그룹별 연령/성별 효율을 분석합니다.",
         settings: "분석 단위: 광고 그룹, 오디언스(성별/연령) / 기간: 전체",
         metrics: "총 비용, 노출, 클릭, CTR, CPC, CPM, 구매완료수, 전환 매출액, ROAS",
-        imgSrc: "gfa_guide_images/guide3.png"
+        imgSrc: "/gfa_guide_images/guide3.png"
       }
     ];
   
@@ -114,7 +114,7 @@ const GFADataGuide = () => {
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
             </svg>
             <span class="text-xs font-mono">이미지 로드 실패</span>
-            <span class="text-[10px] mt-1 text-gray-600">index.html 위치에 'gfa_guide_images' 폴더 확인</span>
+            <span class="text-[10px] mt-1 text-gray-600 block">프로젝트 최상위의 public 폴더 안에 gfa_guide_images 폴더가 있는지 확인해주세요.</span>
           </div>
         `;
       }

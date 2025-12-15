@@ -128,21 +128,21 @@ const DataGuide = () => {
       desc: "월-일 기준의 4주 (28일) 데이터를 권장드립니다. (예: 월요일 시작 ~ 일요일 종료)",
       settings: "캠페인 유형, 캠페인, 주별",
       metrics: "총비용, 노출수, 클릭수, 전환수, 전환매출액, 광고수익률",
-      imgSrc: "guide_images/guide1.png"
+      imgSrc: "/guide_images/guide1.png"
     },
     {
       title: "2. 디바이스/지면 분석",
       desc: "위와 동일한 기간의 데이터를 권장드립니다.",
       settings: "캠페인 유형, 캠페인, 광고그룹, PC/모바일 매체, 검색/콘텐츠 매체",
       metrics: "총비용, 노출수, 클릭수, 전환수, 전환매출액, 광고수익률",
-      imgSrc: "guide_images/guide2.png"
+      imgSrc: "/guide_images/guide2.png"
     },
     {
       title: "3. 검색어 분석",
       desc: "위와 동일한 기간의 데이터를 권장드립니다.",
       settings: "캠페인 유형, 캠페인, 검색어",
       metrics: "총비용, 노출수, 클릭수, 전환수, 전환매출액, 광고수익률",
-      imgSrc: "guide_images/guide3.png"
+      imgSrc: "/guide_images/guide3.png"
     }
   ];
 
@@ -156,7 +156,7 @@ const DataGuide = () => {
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
           </svg>
           <span class="text-xs font-mono">이미지 로드 실패</span>
-          <span class="text-[10px] mt-1 text-gray-600">index.html 위치에 'guide_images' 폴더가 있는지 확인해주세요.</span>
+          <span class="text-[10px] mt-1 text-gray-600 block">프로젝트 최상위의 public 폴더 안에 guide_images 폴더가 있는지 확인해주세요.</span>
         </div>
       `;
     }
@@ -219,13 +219,13 @@ const DataGuide = () => {
                 <div className="space-y-2">
                    <p className="text-xs text-gray-400">1. 경고 메시지 발생 시</p>
                    <div className="bg-gray-900 rounded-lg overflow-hidden border border-gray-700 min-h-[100px]">
-                      <img src="guide_images/guide4.png" alt="경고" className="w-full h-auto object-contain" onError={handleImageError} />
+                      <img src="/guide_images/guide4.png" alt="경고" className="w-full h-auto object-contain" onError={handleImageError} />
                    </div>
                 </div>
                 <div className="space-y-2">
                    <p className="text-xs text-gray-400">2. 필터 설정 (총비용 {'>'} 0원)</p>
                    <div className="bg-gray-900 rounded-lg overflow-hidden border border-gray-700 min-h-[100px]">
-                      <img src="guide_images/guide5.png" alt="필터" className="w-full h-auto object-contain" onError={handleImageError} />
+                      <img src="/guide_images/guide5.png" alt="필터" className="w-full h-auto object-contain" onError={handleImageError} />
                    </div>
                 </div>
               </div>
