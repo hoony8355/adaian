@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { ViewState, PageView } from './types';
 import { Header } from './components/Header';
 import { LandingPage } from './components/LandingPage';
@@ -9,6 +9,7 @@ import { GoogleAds } from './components/GoogleAds';
 import { CoupangAds } from './components/CoupangAds';
 import { auth, loginWithGoogle, logout } from './services/firebase';
 import { onAuthStateChanged, User } from 'firebase/auth';
+import emailjs from '@emailjs/browser';
 
 const COLORS = {
   bg: 'bg-[#373938]',
@@ -28,6 +29,90 @@ const ROUTES: Record<string, PageView> = {
 // Helper to find path by page view
 const getPathByPage = (page: PageView): string => {
   return Object.keys(ROUTES).find(key => ROUTES[key] === page) || '/';
+};
+
+// --- Contact Modal Component ---
+const ContactModal = ({ onClose, userEmail }: { onClose: () => void, userEmail?: string }) => {
+  const form = useRef<HTMLFormElement>(null);
+  const [isSending, setIsSending] = useState(false);
+  const [isSent, setIsSent] = useState(false);
+
+  const sendEmail = (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSending(true);
+
+    // IMPORTANT: Replace these with your actual EmailJS Service ID, Template ID, and Public Key
+    // You can find these in your EmailJS dashboard: https://dashboard.emailjs.com/
+    // It's recommended to put these in .env file like process.env.VITE_EMAILJS_SERVICE_ID
+    const SERVICE_ID = import.meta.env.VITE_EMAILJS_SERVICE_ID || 'YOUR_SERVICE_ID'; 
+    const TEMPLATE_ID = import.meta.env.VITE_EMAILJS_TEMPLATE_ID || 'YOUR_TEMPLATE_ID';
+    const PUBLIC_KEY = import.meta.env.VITE_EMAILJS_PUBLIC_KEY || 'YOUR_PUBLIC_KEY';
+
+    if (SERVICE_ID === 'YOUR_SERVICE_ID') {
+        alert("이메일 발송 설정이 완료되지 않았습니다. 개발자에게 문의해주세요. (EmailJS ID 필요)");
+        setIsSending(false);
+        return;
+    }
+
+    if (form.current) {
+      emailjs.sendForm(SERVICE_ID, TEMPLATE_ID, form.current, PUBLIC_KEY)
+        .then((result) => {
+            console.log(result.text);
+            setIsSent(true);
+            setIsSending(false);
+            setTimeout(() => {
+                onClose();
+            }, 2000);
+        }, (error) => {
+            console.log(error.text);
+            alert("메시지 전송에 실패했습니다. 잠시 후 다시 시도해주세요.");
+            setIsSending(false);
+        });
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/80 backdrop-blur-sm animate-fade-in p-4">
+      <div className="bg-[#2d2f2e] w-full max-w-md rounded-xl border border-gray-700 shadow-2xl overflow-hidden">
+        <div className="p-6 border-b border-gray-700 flex justify-between items-center">
+            <h3 className="text-xl font-bold text-white">문의 / 건의사항</h3>
+            <button onClick={onClose} className="text-gray-400 hover:text-white">✕</button>
+        </div>
+        
+        {isSent ? (
+            <div className="p-10 flex flex-col items-center text-center">
+                <div className="w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center mb-4">
+                    <svg className="w-8 h-8 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                </div>
+                <h4 className="text-xl font-bold text-white mb-2">전송 완료!</h4>
+                <p className="text-gray-400">소중한 의견 감사합니다.<br/>빠른 시일 내에 답변 드리겠습니다.</p>
+            </div>
+        ) : (
+            <form ref={form} onSubmit={sendEmail} className="p-6 space-y-4">
+                <div>
+                    <label className="block text-sm text-gray-400 mb-1">이름 / 닉네임</label>
+                    <input type="text" name="from_name" required className="w-full bg-[#373938] border border-gray-600 rounded p-3 text-white focus:border-[#F05519] focus:outline-none" placeholder="홍길동" />
+                </div>
+                <div>
+                    <label className="block text-sm text-gray-400 mb-1">이메일 (답변 받으실 곳)</label>
+                    <input type="email" name="reply_to" defaultValue={userEmail} required className="w-full bg-[#373938] border border-gray-600 rounded p-3 text-white focus:border-[#F05519] focus:outline-none" placeholder="example@email.com" />
+                </div>
+                <div>
+                    <label className="block text-sm text-gray-400 mb-1">문의 내용</label>
+                    <textarea name="message" required rows={5} className="w-full bg-[#373938] border border-gray-600 rounded p-3 text-white focus:border-[#F05519] focus:outline-none resize-none" placeholder="건의사항이나 궁금한 점을 적어주세요."></textarea>
+                </div>
+                <button 
+                    type="submit" 
+                    disabled={isSending}
+                    className="w-full py-3 bg-[#F05519] hover:bg-[#d44612] text-white font-bold rounded-lg transition-colors disabled:opacity-50 flex justify-center items-center gap-2"
+                >
+                    {isSending ? <span className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></span> : <span>보내기</span>}
+                </button>
+            </form>
+        )}
+      </div>
+    </div>
+  );
 };
 
 // --- API Key Modal Component ---
@@ -121,6 +206,9 @@ export default function App() {
   // API Key State Management
   const [apiKey, setApiKey] = useState<string>('');
   const [showApiKeyModal, setShowApiKeyModal] = useState(false);
+
+  // Contact Modal State
+  const [showContactModal, setShowContactModal] = useState(false);
 
   // Initialize API Key Logic
   useEffect(() => {
@@ -250,8 +338,13 @@ export default function App() {
       {viewState === ViewState.APP && (
         <>
           {showApiKeyModal && <ApiKeyModal onSave={handleSaveApiKey} />}
+          {showContactModal && <ContactModal onClose={() => setShowContactModal(false)} userEmail={user?.email || ''} />}
 
-          <Header currentPage={currentPage} setPage={navigateTo} />
+          <Header 
+            currentPage={currentPage} 
+            setPage={navigateTo} 
+            onOpenContact={() => setShowContactModal(true)}
+          />
           
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2 flex justify-end">
             <div className="flex items-center gap-3 text-sm text-gray-400">

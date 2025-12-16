@@ -8,9 +8,10 @@ const COLORS = {
 interface HeaderProps {
   currentPage: PageView;
   setPage: (page: PageView) => void;
+  onOpenContact: () => void;
 }
 
-export const Header = ({ currentPage, setPage }: HeaderProps) => {
+export const Header = ({ currentPage, setPage, onOpenContact }: HeaderProps) => {
   const navItems = [
     { label: 'Naver 검색광고', value: PageView.NAVER_SEARCH },
     { label: 'Naver GFA', value: PageView.NAVER_GFA },
@@ -48,7 +49,14 @@ export const Header = ({ currentPage, setPage }: HeaderProps) => {
             </div>
           </div>
           <div>
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center space-x-4">
+                <button 
+                  onClick={onOpenContact}
+                  className="hidden md:flex items-center gap-1 text-sm text-gray-300 hover:text-[#F05519] transition-colors border border-gray-600 px-3 py-1.5 rounded-full hover:border-[#F05519]"
+                >
+                  <span>📧</span>
+                  <span>문의/제안</span>
+                </button>
                 <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-orange-500 to-yellow-500 shadow-lg border border-gray-600"></div>
             </div>
           </div>

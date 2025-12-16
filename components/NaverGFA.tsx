@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { UploadedFiles, AnalysisResult, GFACreativeStat } from '../types';
 import { analyzeNaverGFAData } from '../services/naverGFAService';
+import { checkAndIncrementDailyLimit, auth } from '../services/firebase'; // Import auth and limit check
 import { UploadIcon, CheckIcon, ChartIcon, AlertIcon } from './Icons';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
 
@@ -643,6 +644,17 @@ export const NaverGFA = ({ apiKey }: NaverGFAProps) => {
         }
         setIsAnalyzing(true);
         try {
+            // --- DAILY LIMIT CHECK ---
+            if (auth.currentUser) {
+                const canProceed = await checkAndIncrementDailyLimit(auth.currentUser.uid);
+                if (!canProceed) {
+                    alert("일일 보고서 생성 횟수는 3회로 제한됩니다. (매일 한국시간 00시 초기화)");
+                    setIsAnalyzing(false);
+                    return;
+                }
+            }
+            // -------------------------
+
             const [campaignText, creativeText, audienceText] = await Promise.all([
                 readFileAsText(files.gfaCampaign),
                 readFileAsText(files.gfaCreative),

@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { UploadedFiles, AnalysisResult, KeywordStat } from '../types';
 import { analyzeNaverSearchData } from '../services/naverSearchService';
+import { checkAndIncrementDailyLimit, auth } from '../services/firebase'; // Import auth and limit check
 import { UploadIcon, CheckIcon, ChartIcon, AlertIcon, SearchIcon } from './Icons';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, Legend } from 'recharts';
 
@@ -751,6 +752,16 @@ export const NaverSearchAds = ({ apiKey }: NaverSearchAdsProps) => {
        alert("업로드하는 과정에서 너무 데이터가 큽니다. 기간조정이나 비용필터를통해 데이터를 간소화 해주세요.");
        return;
     }
+
+    // --- DAILY LIMIT CHECK ---
+    if (auth.currentUser) {
+        const canProceed = await checkAndIncrementDailyLimit(auth.currentUser.uid);
+        if (!canProceed) {
+            alert("일일 보고서 생성 횟수는 3회로 제한됩니다. (매일 한국시간 00시 초기화)");
+            return;
+        }
+    }
+    // -------------------------
 
     setIsAnalyzing(true);
     try {
