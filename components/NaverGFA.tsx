@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { UploadedFiles, AnalysisResult, GFACreativeStat } from '../types';
+import { UploadedFiles, AnalysisResult, GFACreativeStat, GFAAudienceStat } from '../types';
 import { analyzeNaverGFAData } from '../services/naverGFAService';
-import { checkAndIncrementDailyLimit, auth } from '../services/firebase'; // Import auth and limit check
+import { checkAndIncrementDailyLimit, auth } from '../services/firebase';
 import { UploadIcon, CheckIcon, ChartIcon, AlertIcon } from './Icons';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
 
@@ -315,12 +315,14 @@ const CreativeTable = ({ creatives }: { creatives: GFACreativeStat[] }) => {
                     </thead>
                     <tbody>
                         {data.map((item, i) => (
-                            <tr key={i} className="border-b border-gray-700 hover:bg-gray-700/30">
-                                <td className="px-4 py-3 font-medium text-white truncate max-w-[150px]">{item.creativeName}</td>
-                                <td className="px-4 py-3 text-right">{formatCurrency(item.cost)}</td>
-                                <td className={`px-4 py-3 text-right font-bold ${item.roas >= 200 ? 'text-[#03C75A]' : 'text-red-400'}`}>{item.roas.toFixed(0)}%</td>
+                            <tr key={i} className="border-b border-gray-700 hover:bg-gray-700/30 transition-colors">
+                                <td className="px-4 py-3 text-white truncate max-w-[150px]">{item.creativeName}</td>
+                                <td className="px-4 py-3 text-right font-mono">{formatCurrency(item.cost)}</td>
+                                <td className={`px-4 py-3 text-right font-bold ${item.roas >= 200 ? 'text-[#03C75A]' : item.roas < 100 ? 'text-red-400' : 'text-yellow-400'}`}>
+                                    {item.roas.toFixed(0)}%
+                                </td>
                                 <td className="px-4 py-3 text-right">{item.ctr.toFixed(2)}%</td>
-                                <td className={`px-4 py-3 text-right ${item.frequency >= 3 ? 'text-red-400 font-bold' : ''}`}>{item.frequency.toFixed(1)}</td>
+                                <td className={`px-4 py-3 text-right ${item.frequency >= 4 ? 'text-red-400 font-bold' : ''}`}>{item.frequency.toFixed(1)}</td>
                                 <td className="px-4 py-3 text-right">{formatNumber(item.reach)}</td>
                             </tr>
                         ))}
@@ -331,113 +333,100 @@ const CreativeTable = ({ creatives }: { creatives: GFACreativeStat[] }) => {
     );
 };
 
-const Dashboard = ({ result }: { result: AnalysisResult }) => {
-    // Safety check and sorting for Audience stats
-    const mediaStats = result.audienceMediaStats 
-        ? [...result.audienceMediaStats].sort((a, b) => b.cost - a.cost).slice(0, 8) 
-        : [];
-    const ageStats = result.audienceAgeStats 
-        ? [...result.audienceAgeStats].sort((a, b) => b.cost - a.cost).slice(0, 8) 
-        : [];
+const AudienceTable = ({ title, stats }: { title: string, stats: GFAAudienceStat[] }) => {
+    // Sort by Cost
+    const sorted = [...stats].sort((a,b) => b.cost - a.cost).slice(0, 5);
+    
+    return (
+        <div className={`${COLORS.card} p-5 rounded-xl border border-gray-700`}>
+            <h4 className="font-bold text-white mb-4">{title}</h4>
+            <div className="space-y-3">
+                {sorted.map((item, i) => (
+                    <div key={i} className="flex items-center justify-between text-sm">
+                         <div className="flex flex-col">
+                             <span className="text-white font-medium">{item.segment}</span>
+                             <span className="text-xs text-gray-500">{formatCurrency(item.cost)}</span>
+                         </div>
+                         <div className="text-right">
+                             <span className={`font-bold ${item.roas >= 200 ? 'text-[#03C75A]' : 'text-gray-400'}`}>{item.roas.toFixed(0)}%</span>
+                             <div className="text-[10px] text-gray-500">ROAS</div>
+                         </div>
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+};
 
+const GFADashboard = ({ result }: { result: AnalysisResult }) => {
     return (
         <div className="space-y-8 animate-fade-in">
-            {/* 1. Summary Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <div className={`${COLORS.card} p-5 rounded-lg border border-gray-700`}>
-                    <p className="text-gray-400 text-sm">총 광고비</p>
-                    <p className="text-2xl font-bold text-white">{result.summary.totalCost}</p>
-                    <p className="text-xs text-gray-500 mt-1">{result.summary.costChange}</p>
-                </div>
-                <div className={`${COLORS.card} p-5 rounded-lg border border-gray-700`}>
-                    <p className="text-gray-400 text-sm">총 매출액</p>
-                    <p className="text-2xl font-bold text-white">{result.summary.totalRevenue}</p>
-                </div>
-                <div className={`${COLORS.card} p-5 rounded-lg border border-gray-700`}>
-                    <p className="text-gray-400 text-sm">평균 ROAS</p>
-                    <p className={`text-2xl font-bold ${result.summary.roasChange.includes('-') ? 'text-red-400' : 'text-[#03C75A]'}`}>{result.summary.totalRoas}</p>
-                    <p className="text-xs text-gray-500 mt-1">{result.summary.roasChange}</p>
-                </div>
-                <div className={`${COLORS.card} p-5 rounded-lg border border-gray-700`}>
-                    <p className="text-gray-400 text-sm">총 전환수</p>
-                    <p className="text-2xl font-bold text-white">{result.summary.totalConversions}</p>
-                </div>
-            </div>
+             {/* Summary & Funnel */}
+             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                  <div className={`${COLORS.card} p-5 rounded-lg border border-gray-700`}>
+                     <p className="text-gray-400 text-sm">총 광고비</p>
+                     <p className="text-2xl font-bold text-white">{result.summary.totalCost}</p>
+                  </div>
+                   <div className={`${COLORS.card} p-5 rounded-lg border border-gray-700`}>
+                     <p className="text-gray-400 text-sm">총 매출액</p>
+                     <p className="text-2xl font-bold text-white">{result.summary.totalRevenue}</p>
+                  </div>
+                   <div className={`${COLORS.card} p-5 rounded-lg border border-gray-700`}>
+                     <p className="text-gray-400 text-sm">ROAS</p>
+                     <p className="text-2xl font-bold text-[#03C75A]">{result.summary.totalRoas}</p>
+                  </div>
+                   <div className={`${COLORS.card} p-5 rounded-lg border border-gray-700`}>
+                     <p className="text-gray-400 text-sm">전환수</p>
+                     <p className="text-2xl font-bold text-white">{result.summary.totalConversions}</p>
+                  </div>
+             </div>
 
-            {/* 2. Funnel Analysis */}
-            {result.funnelAnalysis && (
+             {/* Funnel Analysis */}
+             {result.funnelAnalysis && (
                 <div className={`${COLORS.card} p-6 rounded-xl border border-gray-700`}>
-                    <h3 className="text-lg font-bold text-white mb-4">📢 퍼널(Funnel) 진단</h3>
-                    <div className="grid grid-cols-2 md:grid-cols-5 gap-2 mb-4">
-                        <FunnelCard label="CPM (노출단가)" value={formatNumber(result.funnelAnalysis.cpm)} subLabel="낮을수록 좋음" />
-                        <FunnelCard label="CTR (클릭률)" value={`${result.funnelAnalysis.ctr.toFixed(2)}%`} subLabel="높을수록 좋음" />
-                        <FunnelCard label="CPC (클릭단가)" value={formatNumber(result.funnelAnalysis.cpc)} />
+                    <h3 className="text-lg font-bold text-white mb-6">📢 퍼널(Funnel) 진단</h3>
+                    <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                        <FunnelCard label="CPM (노출단가)" value={formatCurrency(result.funnelAnalysis.cpm)} />
+                        <FunnelCard label="CTR (클릭률)" value={`${result.funnelAnalysis.ctr.toFixed(2)}%`} />
+                        <FunnelCard label="CPC (클릭단가)" value={formatCurrency(result.funnelAnalysis.cpc)} />
                         <FunnelCard label="CVR (전환율)" value={`${result.funnelAnalysis.cvr.toFixed(2)}%`} />
                         <FunnelCard label="ROAS" value={`${result.funnelAnalysis.roas.toFixed(0)}%`} />
                     </div>
-                    <div className="bg-gray-800/50 p-4 rounded border-l-4 border-[#03C75A] text-gray-300 text-sm leading-relaxed">
-                        <strong>AI 진단:</strong> {result.funnelAnalysis.diagnosis}
+                    <div className="mt-6 bg-[#2d2f2e] p-4 rounded border border-gray-600">
+                         <span className="text-[#03C75A] font-bold mr-2">AI 진단:</span>
+                         <span className="text-gray-300 text-sm leading-relaxed">{result.funnelAnalysis.diagnosis}</span>
                     </div>
                 </div>
-            )}
+             )}
 
-            {/* 3. Trend Chart */}
-            <div className={`${COLORS.card} p-6 rounded-xl border border-gray-700 h-[350px]`}>
-                <div className="flex items-center gap-2 mb-4">
-                    <ChartIcon />
-                    <h3 className="text-lg font-bold text-white">일별 성과 트렌드 (ROAS)</h3>
+             {/* Trend Chart */}
+             <div className={`${COLORS.card} p-6 rounded-xl border border-gray-700 h-[350px]`}>
+                 <h3 className="text-lg font-bold text-white mb-4">일별 성과 트렌드</h3>
+                 <ResponsiveContainer width="100%" height="100%">
+                   <LineChart data={result.trendData}>
+                     <CartesianGrid strokeDasharray="3 3" stroke="#555" vertical={false} />
+                     <XAxis dataKey="name" stroke="#999" fontSize={12} tickLine={false} axisLine={false} />
+                     <YAxis stroke="#999" fontSize={12} tickLine={false} axisLine={false} />
+                     <Tooltip contentStyle={{ backgroundColor: '#333', borderColor: '#555', color: '#fff' }} />
+                     <Line type="monotone" dataKey="roas" stroke="#03C75A" strokeWidth={2} dot={{r:3}} name="ROAS" />
+                     <Line type="monotone" dataKey="cost" stroke="#8884d8" strokeWidth={2} dot={false} name="Cost" />
+                   </LineChart>
+                 </ResponsiveContainer>
+             </div>
+
+             {/* Creative & Audience Analysis */}
+             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div className="lg:col-span-2">
+                     {result.creativeStats && <CreativeTable creatives={result.creativeStats} />}
                 </div>
-                <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={result.trendData}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#555" vertical={false} />
-                        <XAxis dataKey="name" stroke="#999" fontSize={12} tickLine={false} axisLine={false} />
-                        <YAxis stroke="#999" fontSize={12} tickLine={false} axisLine={false} />
-                        <Tooltip contentStyle={{ backgroundColor: '#333', borderColor: '#555', color: '#fff' }} />
-                        <Line type="monotone" dataKey="roas" stroke="#03C75A" strokeWidth={2} dot={{r:3}} />
-                    </LineChart>
-                </ResponsiveContainer>
-            </div>
-
-            {/* 4. Creative Grid */}
-            <div className="grid grid-cols-1">
-                <CreativeTable creatives={result.creativeStats || []} />
-            </div>
-
-            {/* 5. Audience Grid (Split) */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div className={`${COLORS.card} p-6 rounded-xl border border-gray-700`}>
-                    <h3 className="text-lg font-bold text-white mb-4">👥 오디언스(타겟/매체) 효율 [비용순]</h3>
-                    <div className="h-[300px]">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <BarChart data={mediaStats} layout="vertical">
-                                <CartesianGrid strokeDasharray="3 3" stroke="#555" horizontal={false} />
-                                <XAxis type="number" stroke="#999" fontSize={10} />
-                                <YAxis dataKey="segment" type="category" width={100} stroke="#999" fontSize={11} />
-                                <Tooltip cursor={{fill: 'transparent'}} contentStyle={{ backgroundColor: '#333', borderColor: '#555', color: '#fff' }} />
-                                <Bar dataKey="roas" fill="#03C75A" radius={[0, 4, 4, 0]} name="ROAS (%)" barSize={20} />
-                            </BarChart>
-                        </ResponsiveContainer>
-                    </div>
+                <div className="space-y-6">
+                     {result.audienceAgeStats && <AudienceTable title="연령별 효율 (Top 5)" stats={result.audienceAgeStats} />}
+                     {result.audienceMediaStats && <AudienceTable title="매체/OS별 효율 (Top 5)" stats={result.audienceMediaStats} />}
                 </div>
+             </div>
 
-                <div className={`${COLORS.card} p-6 rounded-xl border border-gray-700`}>
-                    <h3 className="text-lg font-bold text-white mb-4">👥 오디언스(연령) 효율 [비용순]</h3>
-                    <div className="h-[300px]">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <BarChart data={ageStats} layout="vertical">
-                                <CartesianGrid strokeDasharray="3 3" stroke="#555" horizontal={false} />
-                                <XAxis type="number" stroke="#999" fontSize={10} />
-                                <YAxis dataKey="segment" type="category" width={100} stroke="#999" fontSize={11} />
-                                <Tooltip cursor={{fill: 'transparent'}} contentStyle={{ backgroundColor: '#333', borderColor: '#555', color: '#fff' }} />
-                                <Bar dataKey="roas" fill="#F05519" radius={[0, 4, 4, 0]} name="ROAS (%)" barSize={20} />
-                            </BarChart>
-                        </ResponsiveContainer>
-                    </div>
-                </div>
-            </div>
-
-            {/* 6. Action Items & Issues */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+             {/* Issues & Actions */}
+             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <div className="bg-[#2d2f2e] border border-red-900/30 p-6 rounded-xl">
                     <div className="flex items-center gap-2 mb-4">
                         <AlertIcon />
@@ -466,86 +455,19 @@ const Dashboard = ({ result }: { result: AnalysisResult }) => {
                         ))}
                     </ul>
                 </div>
-            </div>
-            
-            <div className="text-center pt-8 pb-12">
-                <button onClick={() => window.print()} className="text-gray-400 hover:text-white underline text-sm">
-                PDF 리포트로 저장하기 (브라우저 인쇄)
-                </button>
-            </div>
+             </div>
         </div>
     );
 };
 
-// --- FAQ SECTION COMPONENT (GFA Specific) ---
-const FAQSection = () => {
-    const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(null);
-    
-    const faqs = [
-        {
-            q: "네이버 GFA 분석기는 어떤 점이 특별한가요?",
-            a: "단순 성과뿐만 아니라 '소재 피로도(빈도 분석)'와 '연령/타겟 효율'을 중점적으로 분석하여, 이미지가 지루해져서 효율이 떨어지는 시점을 정확히 짚어냅니다."
-        },
-        {
-            q: "소재(이미지) 교체 시기를 알려주나요?",
-            a: "네, AI가 빈도(Frequency)와 클릭률(CTR) 추이를 분석하여 '소재 교체 필요' 알람을 제공합니다."
-        },
-        {
-            q: "어떤 타겟이 효율적인지 알 수 있나요?",
-            a: "업로드하신 데모그래픽 리포트를 기반으로 성별, 연령대, 상세 타겟 중 ROAS가 높은 'Winner 타겟'을 추출해 드립니다."
-        },
-        {
-            q: "데이터가 너무 많은데 분석이 가능한가요?",
-            a: "네, AdAiAn은 대용량 CSV 처리 로직을 탑재하고 있어 수만 행의 GFA 데이터도 빠르고 정확하게 분석할 수 있습니다."
-        }
-    ];
-
-    const toggleFaq = (index: number) => {
-        setOpenFaqIndex(openFaqIndex === index ? null : index);
-    };
-
-    return (
-        <section className="mt-16 border-t border-gray-700 pt-16 mb-24">
-            <h3 className="text-2xl font-bold text-center text-white mb-2">네이버 GFA 분석 자주 묻는 질문</h3>
-            <p className="text-center text-gray-400 mb-8">성과형 디스플레이 광고 최적화에 대해 확인하세요.</p>
-            <div className="max-w-3xl mx-auto space-y-4">
-                {faqs.map((item, idx) => (
-                    <div key={idx} className="border border-gray-700 rounded-lg bg-[#373938] overflow-hidden">
-                        <button
-                            onClick={() => toggleFaq(idx)}
-                            className="w-full px-6 py-4 text-left flex justify-between items-center focus:outline-none hover:bg-gray-700/50 transition-colors"
-                        >
-                            <span className="font-medium text-white">{item.q}</span>
-                            <span className={`transform transition-transform ${openFaqIndex === idx ? 'rotate-180' : ''} text-[#03C75A]`}>
-                                ▼
-                            </span>
-                        </button>
-                        {openFaqIndex === idx && (
-                            <div className="px-6 py-4 bg-[#454746] text-gray-300 text-sm leading-relaxed border-t border-gray-700 animate-fade-in">
-                                {item.a}
-                            </div>
-                        )}
-                    </div>
-                ))}
-            </div>
-        </section>
-    );
-};
-
-
-interface NaverGFAProps {
-  apiKey: string;
-}
-
-export const NaverGFA = ({ apiKey }: NaverGFAProps) => {
+export const NaverGFA = () => {
     const [files, setFiles] = useState<UploadedFiles>({});
     const [isAnalyzing, setIsAnalyzing] = useState(false);
     const [result, setResult] = useState<AnalysisResult | null>(null);
     const [showExample, setShowExample] = useState(false);
 
-    // --- SEO Optimization ---
     useEffect(() => {
-        document.title = "네이버 GFA 분석기 - AdAiAn | 성과형 디스플레이 광고 AI 진단";
+        document.title = "네이버 GFA 성과 분석기 - AdAiAn | 성과형 디스플레이 광고 분석";
         
         const updateMeta = (name: string, content: string) => {
             let element = document.querySelector(`meta[name="${name}"]`);
@@ -557,84 +479,17 @@ export const NaverGFA = ({ apiKey }: NaverGFAProps) => {
             element.setAttribute('content', content);
         };
 
-        updateMeta('description', '네이버 GFA(성과형 디스플레이) 광고 성과를 AI가 무료로 분석합니다. 소재 피로도 진단, 타겟 효율 분석, ROAS 최적화 가이드를 제공합니다.');
-        updateMeta('keywords', '네이버 GFA 분석기, GFA 성과 분석, 네이버 디스플레이 광고, GFA 최적화, 광고 소재 분석');
-
-        // Expert Schema Markup (Service + FAQ)
-        const schemaId = 'schema-gfa-expert';
-        const oldSchema = document.getElementById(schemaId);
-        if (oldSchema) oldSchema.remove();
-
-        const schemaData = {
-            "@context": "https://schema.org",
-            "@graph": [
-                {
-                    "@type": "Service",
-                    "name": "네이버 GFA AI 분석 서비스",
-                    "serviceType": "Display Advertising Analysis",
-                    "provider": {
-                        "@type": "Organization",
-                        "name": "AdAiAn"
-                    },
-                    "description": "네이버 성과형 디스플레이 광고(GFA)의 소재 피로도, 타겟 효율, 캠페인 퍼널을 AI가 분석하여 ROAS 최적화 가이드를 제공합니다.",
-                    "offers": {
-                        "@type": "Offer",
-                        "price": "0",
-                        "priceCurrency": "KRW"
-                    }
-                },
-                {
-                    "@type": "FAQPage",
-                    "mainEntity": [
-                        {
-                            "@type": "Question",
-                            "name": "네이버 GFA 분석기는 어떤 점이 특별한가요?",
-                            "acceptedAnswer": {
-                                "@type": "Answer",
-                                "text": "단순 성과뿐만 아니라 '소재 피로도(빈도 분석)'와 '연령/타겟 효율'을 중점적으로 분석하여, 이미지가 지루해져서 효율이 떨어지는 시점을 정확히 짚어냅니다."
-                            }
-                        },
-                        {
-                            "@type": "Question",
-                            "name": "소재(이미지) 교체 시기를 알려주나요?",
-                            "acceptedAnswer": {
-                                "@type": "Answer",
-                                "text": "네, AI가 빈도(Frequency)와 클릭률(CTR) 추이를 분석하여 '소재 교체 필요' 알람을 제공합니다."
-                            }
-                        },
-                        {
-                            "@type": "Question",
-                            "name": "어떤 타겟이 효율적인지 알 수 있나요?",
-                            "acceptedAnswer": {
-                                "@type": "Answer",
-                                "text": "업로드하신 데모그래픽 리포트를 기반으로 성별, 연령대, 상세 타겟 중 ROAS가 높은 'Winner 타겟'을 추출해 드립니다."
-                            }
-                        }
-                    ]
-                }
-            ]
-        };
-
-        const script = document.createElement('script');
-        script.id = schemaId;
-        script.type = 'application/ld+json';
-        script.innerHTML = JSON.stringify(schemaData);
-        document.head.appendChild(script);
-
-        return () => {
-            const el = document.getElementById(schemaId);
-            if(el) el.remove();
-        };
-
+        updateMeta('description', '네이버 GFA(성과형 디스플레이) 광고 성과를 AI가 무료로 분석합니다. 소재 효율, 타겟 오디언스 분석을 통해 ROAS를 극대화하세요.');
+        updateMeta('keywords', '네이버 GFA 분석, 성과형 디스플레이 광고, GFA 소재 분석, 타겟팅 최적화, 배너 광고 효율');
     }, []);
 
     const readFileAsText = (file: File): Promise<string> => {
-        return new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onload = (e) => resolve(e.target?.result as string);
-            reader.onerror = reject;
-            reader.readAsText(file);
-        });
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (e) => resolve(e.target?.result as string);
+        reader.onerror = reject;
+        reader.readAsText(file);
+      });
     };
 
     const handleAnalyze = async () => {
@@ -644,7 +499,6 @@ export const NaverGFA = ({ apiKey }: NaverGFAProps) => {
         }
         setIsAnalyzing(true);
         try {
-            // --- DAILY LIMIT CHECK ---
             if (auth.currentUser) {
                 const canProceed = await checkAndIncrementDailyLimit(auth.currentUser.uid);
                 if (!canProceed) {
@@ -653,18 +507,18 @@ export const NaverGFA = ({ apiKey }: NaverGFAProps) => {
                     return;
                 }
             }
-            // -------------------------
 
-            const [campaignText, creativeText, audienceText] = await Promise.all([
+            const [campText, creativeText, audienceText] = await Promise.all([
                 readFileAsText(files.gfaCampaign),
                 readFileAsText(files.gfaCreative),
                 readFileAsText(files.gfaAudience)
             ]);
-            const data = await analyzeNaverGFAData(campaignText, creativeText, audienceText, apiKey);
+
+            const data = await analyzeNaverGFAData(campText, creativeText, audienceText);
             setResult(data);
         } catch (error) {
             console.error(error);
-            alert("사용량이 많아 AI 보고서 생성에 실패했습니다. 잠시 후 다시 시도해주세요.");
+            alert("AI 분석 생성에 실패했습니다. 파일 형식을 확인하거나 잠시 후 다시 시도해주세요.");
         } finally {
             setIsAnalyzing(false);
         }
@@ -682,43 +536,34 @@ export const NaverGFA = ({ apiKey }: NaverGFAProps) => {
             {!result && !isAnalyzing && (
                 <>
                     <div className="mb-8">
-                        <h1 className="text-3xl font-bold mb-2">네이버 GFA 분석기</h1>
-                        <p className="text-gray-400">네이버 성과형 디스플레이 광고(GFA) 리포트 3종을 업로드해주세요.</p>
-                        
-                        <div className="mt-4 bg-[#454746] p-4 rounded text-sm text-gray-300 border border-gray-600 space-y-2">
-                            <p className="flex items-start gap-2">
-                                <span className="text-[#03C75A] font-bold">✓</span>
-                                <span>GFA는 <strong>소재 피로도(빈도)</strong> 분석이 매우 중요합니다.</span>
-                            </p>
-                            <p className="flex items-start gap-2">
-                                <span className="text-[#03C75A] font-bold">✓</span>
-                                <span>연령/성별 효율을 분석하여 <strong>'Winner 타겟'</strong>을 찾아드립니다.</span>
-                            </p>
-                             <p className="flex items-start gap-2">
-                                <span className="text-yellow-500 font-bold">!</span>
-                                <span>데이터 양이 많을 경우 최근 14일 데이터만 추출해주세요.</span>
-                            </p>
+                        <h1 className="text-3xl font-bold mb-2 text-white">Naver GFA 분석기</h1>
+                        <p className="text-gray-400">성과형 디스플레이(GFA)의 캠페인, 소재, 타겟 보고서를 업로드하세요.</p>
+                        <div className="mt-4 bg-[#454746] p-4 rounded text-sm text-gray-300 border border-gray-600">
+                           <p className="flex items-center gap-2">
+                             <span className="text-[#03C75A] font-bold">!</span>
+                             <span>캠페인(일별), 소재(전체), 오디언스(전체) 리포트가 필요합니다.</span>
+                           </p>
                         </div>
                     </div>
 
                     <div className="grid gap-4 mb-8">
                         <FileUploadZone 
-                            label="1. 캠페인/일별 리포트" 
-                            subtext="캠페인 이름, 기간(일) 포함\n(퍼널 및 트렌드 분석용)"
-                            file={files.gfaCampaign}
-                            onFileSelect={(f) => setFiles(prev => ({...prev, gfaCampaign: f}))}
+                           label="1. 캠페인 리포트 (일별)" 
+                           subtext="날짜별 성과 추이 분석용\n(설정: 캠페인 / 일별)"
+                           file={files.gfaCampaign}
+                           onFileSelect={(f) => setFiles(prev => ({...prev, gfaCampaign: f}))}
                         />
                         <FileUploadZone 
-                            label="2. 소재(Creative) 리포트" 
-                            subtext="광고 소재 이름, 도달, 빈도 포함\n(소재 피로도 분석용)"
-                            file={files.gfaCreative}
-                            onFileSelect={(f) => setFiles(prev => ({...prev, gfaCreative: f}))}
+                           label="2. 소재 리포트 (전체)" 
+                           subtext="이미지/카피 효율 분석용\n(설정: 소재 / 전체 기간)"
+                           file={files.gfaCreative}
+                           onFileSelect={(f) => setFiles(prev => ({...prev, gfaCreative: f}))}
                         />
-                         <FileUploadZone 
-                            label="3. 오디언스/그룹 리포트" 
-                            subtext="광고 그룹, 연령, 성별 포함\n(타겟 효율 분석용)"
-                            file={files.gfaAudience}
-                            onFileSelect={(f) => setFiles(prev => ({...prev, gfaAudience: f}))}
+                        <FileUploadZone 
+                           label="3. 오디언스 리포트 (전체)" 
+                           subtext="연령/성별/매체 타겟 분석용\n(설정: 오디언스 / 전체 기간)"
+                           file={files.gfaAudience}
+                           onFileSelect={(f) => setFiles(prev => ({...prev, gfaAudience: f}))}
                         />
                     </div>
 
@@ -726,9 +571,9 @@ export const NaverGFA = ({ apiKey }: NaverGFAProps) => {
                         onClick={handleAnalyze}
                         disabled={!files.gfaCampaign || !files.gfaCreative || !files.gfaAudience}
                         className={`w-full py-4 rounded-lg font-bold text-lg transition-all
-                            ${(!files.gfaCampaign || !files.gfaCreative || !files.gfaAudience) 
+                            ${(!files.gfaCampaign || !files.gfaCreative || !files.gfaAudience)
                                 ? 'bg-gray-700 text-gray-500 cursor-not-allowed' 
-                                : `bg-[#03C75A] text-white hover:opacity-90 shadow-lg`}
+                                : `bg-[#03C75A] text-white hover:bg-[#02b351] shadow-lg shadow-green-900/20`}
                         `}
                     >
                         AI 분석 실행하기
@@ -736,19 +581,15 @@ export const NaverGFA = ({ apiKey }: NaverGFAProps) => {
                     
                     <GFADataGuide />
 
-                    {/* Report Example Trigger */}
-                    <div className="mt-8 flex justify-center">
+                     <div className="mt-8 flex justify-center">
                         <button 
                             onClick={() => setShowExample(true)}
                             className="flex items-center gap-2 px-6 py-3 rounded-full border border-gray-600 hover:border-[#03C75A] text-gray-300 hover:text-white transition-all bg-[#2d2f2e] shadow-lg"
                         >
                             <span className="text-xl">📊</span>
-                            <span className="font-medium">GFA 분석 결과 예시 보기</span>
+                            <span className="font-medium">분석 결과 예시 보기</span>
                         </button>
                     </div>
-
-                    {/* FAQ Section */}
-                    <FAQSection />
                 </>
             )}
 
@@ -758,14 +599,14 @@ export const NaverGFA = ({ apiKey }: NaverGFAProps) => {
                 <>
                      <div className="flex justify-between items-center mb-8">
                         <div>
-                        <h2 className="text-2xl font-bold">GFA 분석 결과 리포트</h2>
-                        <p className="text-gray-400 text-sm">AI Analysis based on Campaign, Creative, Audience Data</p>
+                            <h2 className="text-2xl font-bold text-white">GFA 분석 리포트</h2>
+                            <p className="text-gray-400 text-sm">AI Analysis for Performance Display Ads</p>
                         </div>
                         <button onClick={handleReset} className="text-sm px-4 py-2 rounded border border-gray-600 hover:bg-gray-700 text-gray-300">
                         새로운 데이터 분석
                         </button>
                     </div>
-                    <Dashboard result={result} />
+                    <GFADashboard result={result} />
                 </>
             )}
         </div>

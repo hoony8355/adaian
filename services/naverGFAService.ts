@@ -1,4 +1,4 @@
-import { GoogleGenAI } from "@google/genai";
+import { GoogleGenAI, GenerateContentResponse } from "@google/genai";
 import { AnalysisResult } from "../types";
 
 // Helper function to safely parse CSV line
@@ -26,6 +26,80 @@ const parseCSVLine = (line: string): string[] => {
 const parseNumber = (str: string | undefined): number => {
   if (!str) return 0;
   return parseFloat(str.replace(/,/g, '').replace(/"/g, '')) || 0;
+};
+
+// --- SMART DATA FILTERING (Sort by Cost -> Top N) ---
+// 비용 절감을 위해 모든 행을 보내지 않고, 비용이 높은 순서대로 정렬하여 상위 N개만 추출합니다.
+const filterCsvByHighCost = (csvText: string, limit: number): string => {
+  // Remove BOM and clean
+  const cleanText = csvText.replace(/^\ufeff/, '').trim();
+  const lines = cleanText.split('\n').filter(l => l.trim() !== '');
+  
+  if (lines.length < 2) return cleanText;
+
+  // 1. Find Header
+  let headerIndex = -1;
+  let headers: string[] = [];
+  
+  for(let i=0; i<Math.min(lines.length, 20); i++) {
+    const line = lines[i];
+    // GFA/Naver common cost headers
+    if (line.includes('총 비용') || line.includes('Cost') || line.includes('비용')) {
+      headerIndex = i;
+      headers = parseCSVLine(line);
+      break;
+    }
+  }
+
+  if (headerIndex === -1) return lines.slice(0, limit).join('\n');
+
+  // 2. Identify Cost Column
+  const costIdx = headers.findIndex(h => h.includes('총 비용') || h.includes('Cost') || h.includes('비용'));
+  
+  if (costIdx === -1) return lines.slice(0, limit).join('\n');
+
+  // 3. Parse Rows & Sort
+  const parsedRows = [];
+  for(let i = headerIndex + 1; i < lines.length; i++) {
+    const row = parseCSVLine(lines[i]);
+    // Skip summary rows
+    if (row[0] && (row[0].includes('합계') || row[0].includes('Total'))) continue;
+    
+    if (row.length < headers.length) continue;
+    
+    parsedRows.push({
+      originalLine: lines[i],
+      cost: parseNumber(row[costIdx])
+    });
+  }
+
+  // Sort descending by Cost
+  parsedRows.sort((a, b) => b.cost - a.cost);
+
+  // 4. Take Top N
+  const topRows = parsedRows.slice(0, limit).map(item => item.originalLine);
+  
+  return [lines[headerIndex], ...topRows].join('\n');
+};
+
+// --- RETRY LOGIC FOR 503 OVERLOADED ---
+const retryWithBackoff = async <T>(fn: () => Promise<T>, retries = 3, delay = 2000): Promise<T> => {
+  try {
+    return await fn();
+  } catch (error: any) {
+    const isOverloaded = 
+        error.status === 503 || 
+        error.code === 503 ||
+        (error.message && error.message.includes('overloaded')) ||
+        (error.message && error.message.includes('503'));
+
+    if (retries > 0 && isOverloaded) {
+      console.warn(`Model overloaded. Retrying in ${delay}ms... (${retries} attempts left)`);
+      await new Promise(resolve => setTimeout(resolve, delay));
+      return retryWithBackoff(fn, retries - 1, delay * 2);
+    }
+    throw error;
+  }
 };
 
 // Calculate summary from the "Campaign/Period" file (most accurate for totals)
@@ -97,19 +171,28 @@ const cleanJson = (text: string): string => {
 };
 
 export const analyzeNaverGFAData = async (
-  campaignFile: string, // File 2: Campaign/Date (Trend)
-  creativeFile: string, // File 3: Creative (Reach/Freq)
-  audienceFile: string,  // File 1: Audience/Group
-  apiKey: string
+  campaignFile: string, 
+  creativeFile: string, 
+  audienceFile: string
 ): Promise<AnalysisResult> => {
 
-  const effectiveApiKey = apiKey || process.env.API_KEY;
-  if (!effectiveApiKey) {
-    throw new Error("API Key is missing.");
+  const apiKey = process.env.API_KEY;
+  if (!apiKey) {
+    throw new Error("API Key is missing. Please set process.env.API_KEY.");
   }
 
   // 1. Calculate Accurate Totals (JS)
   const realStats = calculateGFASummary(campaignFile);
+  
+  // 2. Smart Filtering by Cost (Prioritize high spenders)
+  // [COST OPTIMIZATION]
+  // - Campaign: Top 30
+  // - Creative: Top 50 (Reports can be very long)
+  // - Audience: Top 50
+  const filteredCampaign = filterCsvByHighCost(campaignFile, 30);
+  const filteredCreative = filterCsvByHighCost(creativeFile, 50);
+  const filteredAudience = filterCsvByHighCost(audienceFile, 50);
+
   const statsPrompt = realStats ? `
     **MANDATORY: USE THESE PRE-CALCULATED TOTALS.**
     - Total Cost: ${realStats.totalCost}
@@ -122,8 +205,7 @@ export const analyzeNaverGFAData = async (
     - Avg CVR (Conv/Click): ${realStats.avgCvr.toFixed(2)}%
   ` : '';
 
-  const ai = new GoogleGenAI({ apiKey: effectiveApiKey });
-  const MAX_CONTEXT_LENGTH = 50000; // 50k chars per file to be safe
+  const ai = new GoogleGenAI({ apiKey });
 
   const prompt = `
     You are AdAiAn, a Naver GFA (Glad for Advertisers - Display Ads) Expert.
@@ -133,15 +215,15 @@ export const analyzeNaverGFAData = async (
 
     ${statsPrompt}
 
-    DATASETS PROVIDED:
-    1. **CAMPAIGN/PERIOD DATA** (For Trends & Funnel):
-    ${campaignFile.substring(0, MAX_CONTEXT_LENGTH)}
+    DATASETS PROVIDED (Top Spenders Only):
+    1. **CAMPAIGN/PERIOD DATA**:
+    ${filteredCampaign}
 
-    2. **CREATIVE DATA** (For Asset Analysis - Reach, Frequency, CTR):
-    ${creativeFile.substring(0, MAX_CONTEXT_LENGTH)}
+    2. **CREATIVE DATA**:
+    ${filteredCreative}
 
-    3. **AUDIENCE/GROUP DATA** (For Targeting Analysis - Age, Gender, Placement):
-    ${audienceFile.substring(0, MAX_CONTEXT_LENGTH)}
+    3. **AUDIENCE/GROUP DATA**:
+    ${filteredAudience}
 
     --- ANALYSIS REQUIREMENTS (VERY IMPORTANT) ---
 
@@ -216,19 +298,25 @@ export const analyzeNaverGFAData = async (
   `;
 
   try {
-    const response = await ai.models.generateContent({
+    const response = await retryWithBackoff<GenerateContentResponse>(() => ai.models.generateContent({
       model: 'gemini-2.5-flash',
       contents: prompt,
       config: { responseMimeType: "application/json" }
-    });
+    }));
 
     const text = response.text;
     if (!text) throw new Error("No response from AI");
     
     return JSON.parse(cleanJson(text)) as AnalysisResult;
 
-  } catch (error) {
+  } catch (error: any) {
     console.error("GFA Analysis Failed", error);
+    if (error.message?.includes('429') || error.message?.includes('Quota') || error.message?.includes('Resource has been exhausted')) {
+        throw new Error("무료 사용량 한도(분당 요청 제한)를 초과했습니다. 잠시 후 다시 시도해주세요.");
+    }
+    if (error.message?.includes('503') || error.message?.includes('overloaded')) {
+        throw new Error("서버 접속량이 많아 분석이 지연되고 있습니다. 30초 후 다시 시도해주세요.");
+    }
     throw new Error("GFA Report Generation Failed. Please retry.");
   }
 };

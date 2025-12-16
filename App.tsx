@@ -41,15 +41,12 @@ const ContactModal = ({ onClose, userEmail }: { onClose: () => void, userEmail?:
     e.preventDefault();
     setIsSending(true);
 
-    // IMPORTANT: Replace these with your actual EmailJS Service ID, Template ID, and Public Key
-    // You can find these in your EmailJS dashboard: https://dashboard.emailjs.com/
-    // It's recommended to put these in .env file like process.env.VITE_EMAILJS_SERVICE_ID
-    const SERVICE_ID = import.meta.env.VITE_EMAILJS_SERVICE_ID || 'YOUR_SERVICE_ID'; 
-    const TEMPLATE_ID = import.meta.env.VITE_EMAILJS_TEMPLATE_ID || 'YOUR_TEMPLATE_ID';
-    const PUBLIC_KEY = import.meta.env.VITE_EMAILJS_PUBLIC_KEY || 'YOUR_PUBLIC_KEY';
+    const SERVICE_ID = import.meta.env.VITE_EMAILJS_SERVICE_ID; 
+    const TEMPLATE_ID = import.meta.env.VITE_EMAILJS_TEMPLATE_ID;
+    const PUBLIC_KEY = import.meta.env.VITE_EMAILJS_PUBLIC_KEY;
 
-    if (SERVICE_ID === 'YOUR_SERVICE_ID') {
-        alert("이메일 발송 설정이 완료되지 않았습니다. 개발자에게 문의해주세요. (EmailJS ID 필요)");
+    if (!SERVICE_ID || !TEMPLATE_ID || !PUBLIC_KEY) {
+        alert("이메일 발송 설정이 완료되지 않았습니다. 관리자에게 문의해주세요.");
         setIsSending(false);
         return;
     }
@@ -115,49 +112,6 @@ const ContactModal = ({ onClose, userEmail }: { onClose: () => void, userEmail?:
   );
 };
 
-// --- API Key Modal Component ---
-const ApiKeyModal = ({ onSave }: { onSave: (key: string) => void }) => {
-  const [inputKey, setInputKey] = useState('');
-
-  return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 backdrop-blur-sm animate-fade-in">
-      <div className="bg-[#2d2f2e] p-8 rounded-xl border border-gray-700 shadow-2xl max-w-md w-full">
-        <h2 className="text-xl font-bold text-white mb-4">API Key 설정 필요</h2>
-        <p className="text-gray-400 text-sm mb-6 leading-relaxed">
-          분석을 진행하려면 <strong>Google Gemini API Key</strong>가 필요합니다.<br/>
-          <span className="text-xs text-gray-500">(입력한 키는 브라우저에 안전하게 저장됩니다.)</span>
-        </p>
-        <input
-          type="password"
-          value={inputKey}
-          onChange={(e) => setInputKey(e.target.value)}
-          placeholder="AI Studio API Key 입력"
-          className="w-full bg-[#373938] border border-gray-600 rounded p-3 text-white mb-4 focus:border-[#F05519] focus:outline-none focus:ring-1 focus:ring-[#F05519]"
-        />
-        <div className="flex justify-between items-center">
-            <a 
-                href="https://aistudio.google.com/app/apikey" 
-                target="_blank" 
-                rel="noreferrer"
-                className="text-xs text-gray-400 hover:text-white underline"
-            >
-                키 발급받으러 가기
-            </a>
-            <button
-              onClick={() => {
-                  if(inputKey.trim()) onSave(inputKey.trim());
-              }}
-              disabled={!inputKey.trim()}
-              className="px-6 py-2 bg-[#F05519] text-white rounded font-bold hover:bg-[#d44612] disabled:opacity-50 transition-colors"
-            >
-              저장하기
-            </button>
-        </div>
-      </div>
-    </div>
-  );
-};
-
 const LoginScreen = ({ onLogin, isLoading }: { onLogin: () => void, isLoading: boolean }) => {
   return (
     <div className={`fixed inset-0 z-50 flex items-center justify-center ${COLORS.bg}`}>
@@ -202,46 +156,17 @@ export default function App() {
   const [currentPage, setCurrentPage] = useState<PageView>(PageView.LANDING);
   const [user, setUser] = useState<User | null>(null);
   const [isLoginLoading, setIsLoginLoading] = useState(false);
-  
-  // API Key State Management
-  const [apiKey, setApiKey] = useState<string>('');
-  const [showApiKeyModal, setShowApiKeyModal] = useState(false);
-
-  // Contact Modal State
   const [showContactModal, setShowContactModal] = useState(false);
-
-  // Initialize API Key Logic
-  useEffect(() => {
-    const envKey = process.env.API_KEY;
-    if (envKey && envKey.trim() !== '') {
-      setApiKey(envKey);
-      setShowApiKeyModal(false);
-    } else {
-      const storedKey = localStorage.getItem('GEMINI_API_KEY');
-      if (storedKey) {
-        setApiKey(storedKey);
-        setShowApiKeyModal(false);
-      }
-    }
-  }, []);
 
   // --- ROUTING LOGIC ---
   useEffect(() => {
-    // 1. Initial Load: Set Page based on URL
     const currentPath = window.location.pathname;
-    // Simple matching logic
     let matchedPage = PageView.LANDING;
-    // Check exact match first
     if (ROUTES[currentPath]) {
         matchedPage = ROUTES[currentPath];
-    } else {
-        // Fallback or fuzzy match could go here, for now default to Landing
-        // If logged in, maybe we want to preserve the URL? 
-        // We will handle navigation updates below.
     }
     setCurrentPage(matchedPage);
 
-    // 2. Handle Browser Back/Forward buttons
     const handlePopState = () => {
       const path = window.location.pathname;
       const page = ROUTES[path] || PageView.LANDING;
@@ -252,25 +177,18 @@ export default function App() {
     return () => window.removeEventListener('popstate', handlePopState);
   }, []);
 
-  // Function to change page and URL
   const navigateTo = (page: PageView) => {
     const path = getPathByPage(page);
     window.history.pushState({}, '', path);
     setCurrentPage(page);
-    window.scrollTo(0, 0); // Scroll to top on navigation
+    window.scrollTo(0, 0);
   };
 
-  // Firebase Auth State Listener
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       if (currentUser) {
         setUser(currentUser);
         setViewState(ViewState.APP);
-        const envKey = process.env.API_KEY;
-        const storedKey = localStorage.getItem('GEMINI_API_KEY');
-        if ((!envKey || envKey.trim() === '') && !storedKey) {
-            setShowApiKeyModal(true);
-        }
       } else {
         setUser(null);
         setViewState(ViewState.LOGIN);
@@ -280,12 +198,6 @@ export default function App() {
 
     return () => unsubscribe();
   }, []);
-
-  const handleSaveApiKey = (key: string) => {
-    localStorage.setItem('GEMINI_API_KEY', key);
-    setApiKey(key);
-    setShowApiKeyModal(false);
-  };
 
   const handleLogin = async () => {
     setIsLoginLoading(true);
@@ -303,21 +215,20 @@ export default function App() {
       await logout();
       setUser(null);
       setViewState(ViewState.LOGIN);
-      navigateTo(PageView.LANDING); // Go back to landing on logout
+      navigateTo(PageView.LANDING);
     } catch (error) {
       console.error("Logout Error:", error);
     }
   };
 
-  // Simple Router
   const renderContent = () => {
     switch (currentPage) {
       case PageView.LANDING:
         return <LandingPage />;
       case PageView.NAVER_SEARCH:
-        return <NaverSearchAds apiKey={apiKey} />;
+        return <NaverSearchAds />;
       case PageView.NAVER_GFA:
-        return <NaverGFA apiKey={apiKey} />;
+        return <NaverGFA />;
       case PageView.META:
         return <MetaAds />;
       case PageView.GOOGLE:
@@ -337,7 +248,6 @@ export default function App() {
 
       {viewState === ViewState.APP && (
         <>
-          {showApiKeyModal && <ApiKeyModal onSave={handleSaveApiKey} />}
           {showContactModal && <ContactModal onClose={() => setShowContactModal(false)} userEmail={user?.email || ''} />}
 
           <Header 

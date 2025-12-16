@@ -1,9 +1,8 @@
-import { GoogleGenAI } from "@google/genai";
+import { GoogleGenAI, GenerateContentResponse } from "@google/genai";
 import { AnalysisResult } from "../types";
 
 // --- ROBUST CSV PARSING UTILS ---
 
-// Handle BOM and clean text
 const cleanCSVText = (text: string): string => {
   return text.replace(/^\ufeff/, '').trim();
 };
@@ -30,18 +29,16 @@ const parseCSVLine = (line: string): string[] => {
 
 const parseNumber = (str: string | undefined): number => {
   if (!str) return 0;
-  // Remove quotes and commas, then parse
   return parseFloat(str.replace(/["',]/g, '')) || 0;
 };
 
-// --- DATA PRE-PROCESSING (The Fix) ---
-
-// Extract Top N keywords by Cost to reduce payload size
-const processTopKeywords = (csvText: string, limit = 100): string => {
+// --- SMART DATA FILTERING (Sort by Cost -> Top N) ---
+// 비용 절감을 위해 모든 행을 보내지 않고, 비용이 높은 순서대로 정렬하여 상위 N개만 추출합니다.
+const filterCsvByHighCost = (csvText: string, limit: number): string => {
   const cleanText = cleanCSVText(csvText);
   const lines = cleanText.split('\n').filter(l => l.trim() !== '');
   
-  if (lines.length < 2) return "";
+  if (lines.length < 2) return csvText; // Too short to filter
 
   // 1. Find Header
   let headerIndex = -1;
@@ -49,27 +46,30 @@ const processTopKeywords = (csvText: string, limit = 100): string => {
   
   // Search first 20 lines for header
   for(let i=0; i<Math.min(lines.length, 20); i++) {
-    // Naver Keyword Report typically has '검색어' or '키워드' and '총비용'
-    if ((lines[i].includes('검색어') || lines[i].includes('키워드')) && 
-        (lines[i].includes('총비용') || lines[i].includes('Cost'))) {
+    const line = lines[i];
+    // Naver Report common cost column names
+    if (line.includes('총비용') || line.includes('Cost') || line.includes('비용')) {
       headerIndex = i;
-      headers = parseCSVLine(lines[i]);
+      headers = parseCSVLine(line);
       break;
     }
   }
 
-  if (headerIndex === -1) return "Header not found in Keyword file.";
+  if (headerIndex === -1) return lines.slice(0, limit).join('\n'); // Fallback: just slice if no header found
 
-  // 2. Identify Columns
-  const keywordIdx = headers.findIndex(h => h.includes('검색어') || h.includes('키워드'));
-  const costIdx = headers.findIndex(h => h.includes('총비용') || h.includes('Cost'));
+  // 2. Identify Cost Column
+  const costIdx = headers.findIndex(h => h.includes('총비용') || h.includes('Cost') || h.includes('비용'));
   
-  if (keywordIdx === -1 || costIdx === -1) return "Essential columns missing in Keyword file.";
+  // Cost 컬럼을 못 찾으면 그냥 앞부분만 자름
+  if (costIdx === -1) return lines.slice(0, limit).join('\n'); 
 
   // 3. Parse Rows & Sort
   const parsedRows = [];
   for(let i = headerIndex + 1; i < lines.length; i++) {
     const row = parseCSVLine(lines[i]);
+    // Skip summary rows (Habgye/Total) to avoid double counting or sorting issues
+    if (row[0] && (row[0].includes('합계') || row[0].includes('Total'))) continue;
+
     if (row.length < headers.length) continue;
     
     parsedRows.push({
@@ -78,7 +78,7 @@ const processTopKeywords = (csvText: string, limit = 100): string => {
     });
   }
 
-  // Sort descending by Cost
+  // Sort descending by Cost (비용 높은 순 정렬)
   parsedRows.sort((a, b) => b.cost - a.cost);
 
   // 4. Take Top N and reconstruct CSV string
@@ -87,8 +87,26 @@ const processTopKeywords = (csvText: string, limit = 100): string => {
   return [lines[headerIndex], ...topRows].join('\n');
 };
 
-// Calculate summary from Campaign (Weekly) file
-// This uses the FULL data for accurate totals
+// --- RETRY LOGIC FOR 503 OVERLOADED ---
+const retryWithBackoff = async <T>(fn: () => Promise<T>, retries = 3, delay = 2000): Promise<T> => {
+  try {
+    return await fn();
+  } catch (error: any) {
+    const isOverloaded = 
+        error.status === 503 || 
+        error.code === 503 ||
+        (error.message && error.message.includes('overloaded')) ||
+        (error.message && error.message.includes('503'));
+
+    if (retries > 0 && isOverloaded) {
+      console.warn(`Model overloaded. Retrying in ${delay}ms... (${retries} attempts left)`);
+      await new Promise(resolve => setTimeout(resolve, delay));
+      return retryWithBackoff(fn, retries - 1, delay * 2);
+    }
+    throw error;
+  }
+};
+
 const calculateSummaryStats = (csvText: string) => {
   const cleanText = cleanCSVText(csvText);
   const lines = cleanText.split('\n');
@@ -120,7 +138,6 @@ const calculateSummaryStats = (csvText: string) => {
     const line = lines[i].trim();
     if (!line) continue;
     const row = parseCSVLine(line);
-    // Naver specific: skip total summary row if present (usually starts with "합계")
     if (row[0] && row[0].includes('합계')) continue;
     if (row.length < headers.length) continue;
 
@@ -148,21 +165,25 @@ const cleanJson = (text: string): string => {
 export const analyzeNaverSearchData = async (
   campaignData: string,
   deviceData: string,
-  keywordData: string,
-  apiKey: string
+  keywordData: string
 ): Promise<AnalysisResult> => {
   
-  const effectiveApiKey = apiKey || process.env.API_KEY;
-  if (!effectiveApiKey) {
-    throw new Error("API Key is missing.");
+  const apiKey = process.env.API_KEY;
+  if (!apiKey) {
+    throw new Error("API Key is missing. Please set process.env.API_KEY.");
   }
 
-  // 1. Calculate Real Totals (Client-side, full precision)
+  // 1. Calculate Real Totals (Uses Full Data for accuracy)
   const realStats = calculateSummaryStats(campaignData);
   
-  // 2. Pre-process Keyword Data (Client-side filtering)
-  // Extract only Top 100 keywords by Cost to prevent token overflow/timeout
-  const processedKeywordData = processTopKeywords(keywordData, 100);
+  // 2. Smart Pre-processing (Filter by Cost to reduce token usage)
+  // [COST OPTIMIZATION]
+  // - Campaign: Top 30 campaigns (Significant enough for trend)
+  // - Device: Top 20 rows (Usually only has 4-10 rows anyway)
+  // - Keywords: Top 100 keywords by spend. (This drastically cuts costs. The 'long tail' is ignored by AI but captured in realStats totals)
+  const filteredCampaignData = filterCsvByHighCost(campaignData, 30);
+  const filteredDeviceData = filterCsvByHighCost(deviceData, 20);
+  const filteredKeywordData = filterCsvByHighCost(keywordData, 100);
 
   const statsPrompt = realStats ? `
     **MANDATORY: USE THESE PRE-CALCULATED TOTALS.**
@@ -173,12 +194,7 @@ export const analyzeNaverSearchData = async (
     - Total ROAS: ${realStats.totalRoas.toFixed(2)}%
   ` : '';
 
-  const ai = new GoogleGenAI({ apiKey: effectiveApiKey });
-
-  // 3. Construct Prompt with Optimized Data
-  // We send full Campaign/Device data (usually small) but ONLY top keywords.
-  // MAX_CONTEXT_LENGTH safety is still good for Campaign/Device files.
-  const MAX_CONTEXT_LENGTH = 100000; 
+  const ai = new GoogleGenAI({ apiKey });
 
   const prompt = `
     You are AdAiAn, a high-end Advertising AI Analyst expert in Naver Search Ads.
@@ -188,36 +204,31 @@ export const analyzeNaverSearchData = async (
 
     ${statsPrompt}
 
-    DATASETS:
-    1. **CAMPAIGN (Weekly)**:
-    ${campaignData.substring(0, MAX_CONTEXT_LENGTH)}
+    DATASETS (Top spenders only):
+    1. **CAMPAIGN (Weekly/Daily)**:
+    ${filteredCampaignData}
 
     2. **DEVICE/PLACEMENT**:
-    ${deviceData.substring(0, MAX_CONTEXT_LENGTH)}
+    ${filteredDeviceData}
 
-    3. **TOP 100 KEYWORDS (By Cost)**:
-    ${processedKeywordData} 
-    *(Note: This is a pre-filtered list of high-spend keywords. Focus your keyword analysis on these.)*
+    3. **TOP KEYWORDS (By Cost)**:
+    ${filteredKeywordData} 
 
     --- ANALYSIS INSTRUCTIONS (STRICTLY FOLLOW) ---
 
     1. **Summary**: Use the provided totals.
     
-    2. **Trend Data (Weekly)**:
-       - **CRITICAL**: The 'name' field MUST be the **Date/Week string** (e.g., "2025.11.10", "2025.11.17") from the Campaign Data.
-       - **DO NOT** use "Power Link" or "Shopping Search" as the name.
-       - Aggregate ALL campaigns for each week to get the total Cost and ROAS for that specific week.
+    2. **Trend Data**:
+       - The 'name' field MUST be the Date/Week string from Campaign Data.
+       - Even if data is not sorted by date, try to organize the 'trendData' array chronologically if possible.
     
     3. **Device Performance**:
-       - Calculate **PC** ROAS: Sum(Revenue of all PC rows) / Sum(Cost of all PC rows) * 100.
-       - Calculate **Mobile** ROAS: Sum(Revenue of all Mobile rows) / Sum(Cost of all Mobile rows) * 100.
-       - **DO NOT** simply sum up the ROAS percentages. You must recalculate based on total totals.
+       - Calculate **PC** ROAS and **Mobile** ROAS based on the aggregated data provided.
 
     4. **Deep Insights & Critical Issues (LONG FORM)**:
        - The user wants DETAILED analysis. Do not be brief.
-       - For 'Critical Issues' and 'Action Items', provide at least **3-4 detailed sentences** per point.
-       - Explain the *Cause*, the *Effect*, and the *Specific Solution*.
-       - Example: Instead of "Low ROAS in Mobile", say "Mobile devices show a ROAS of 150% compared to PC's 400%, despite consuming 60% of the budget. This suggests inefficient mobile landing pages or accidental clicks."
+       - Focus on high-spending keywords that have 0 conversions.
+       - Compare Mobile vs PC efficiency.
 
     5. **Top Keywords**:
        - Return the list of top keywords provided.
@@ -262,19 +273,25 @@ export const analyzeNaverSearchData = async (
   `;
 
   try {
-    const response = await ai.models.generateContent({
+    const response = await retryWithBackoff<GenerateContentResponse>(() => ai.models.generateContent({
       model: 'gemini-2.5-flash',
       contents: prompt,
       config: { responseMimeType: "application/json" }
-    });
+    }));
 
     const text = response.text;
     if (!text) throw new Error("No response from AI");
 
     return JSON.parse(cleanJson(text)) as AnalysisResult;
 
-  } catch (error) {
+  } catch (error: any) {
     console.error("Analysis Failed", error);
+    if (error.message?.includes('429') || error.message?.includes('Quota') || error.message?.includes('Resource has been exhausted')) {
+        throw new Error("무료 사용량 한도(분당 요청 제한)를 초과했습니다. 잠시 후 다시 시도해주세요.");
+    }
+    if (error.message?.includes('503') || error.message?.includes('overloaded')) {
+        throw new Error("서버 접속량이 많아 분석이 지연되고 있습니다. 30초 후 다시 시도해주세요.");
+    }
     throw new Error("AI 분석에 실패했습니다. 데이터 형식을 확인하거나 잠시 후 다시 시도해주세요.");
   }
 };
