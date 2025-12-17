@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { UploadedFiles, AnalysisResult, KeywordStat } from '../types';
 import { analyzeNaverSearchData } from '../services/naverSearchService';
-import { checkAndIncrementDailyLimit, auth } from '../services/firebase';
+import { getRemainingDailyLimit, incrementDailyLimit, auth } from '../services/firebase';
 import { UploadIcon, CheckIcon, ChartIcon, AlertIcon, SearchIcon } from './Icons';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, Legend } from 'recharts';
 
@@ -468,7 +468,7 @@ const Dashboard = ({ result }: { result: AnalysisResult }) => {
   );
 };
 
-export const NaverSearchAds = () => {
+export const NaverSearchAds = ({ onUsageUpdated }: { onUsageUpdated?: () => void }) => {
     const [files, setFiles] = useState<UploadedFiles>({});
     const [isAnalyzing, setIsAnalyzing] = useState(false);
     const [result, setResult] = useState<AnalysisResult | null>(null);
@@ -508,11 +508,11 @@ export const NaverSearchAds = () => {
         }
         setIsAnalyzing(true);
         try {
-            // --- DAILY LIMIT CHECK ---
+            // --- DAILY LIMIT CHECK (READ ONLY) ---
             if (auth.currentUser) {
-              const canProceed = await checkAndIncrementDailyLimit(auth.currentUser.uid);
-              if (!canProceed) {
-                alert("일일 보고서 생성 횟수는 3회로 제한됩니다. (매일 한국시간 00시 초기화)");
+              const remaining = await getRemainingDailyLimit(auth.currentUser.uid);
+              if (remaining <= 0) {
+                alert("일일 보고서 생성 횟수(2회)를 모두 소진했습니다. 내일 다시 이용해주세요.");
                 setIsAnalyzing(false);
                 return;
               }
@@ -526,9 +526,16 @@ export const NaverSearchAds = () => {
             ]);
             const data = await analyzeNaverSearchData(campaignText, deviceText, keywordText);
             setResult(data);
+
+            // --- SUCCESS: INCREMENT LIMIT & UPDATE UI ---
+            if (auth.currentUser) {
+                await incrementDailyLimit(auth.currentUser.uid);
+                if (onUsageUpdated) onUsageUpdated();
+            }
+
         } catch (error) {
             console.error(error);
-            alert("AI 분석 생성에 실패했습니다. 파일 형식을 확인하거나 잠시 후 다시 시도해주세요.");
+            alert("AI 분석 생성에 실패했습니다. (횟수는 차감되지 않습니다.)\n파일 형식을 확인하거나 잠시 후 다시 시도해주세요.");
         } finally {
             setIsAnalyzing(false);
         }

@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { UploadedFiles, AnalysisResult, GFACreativeStat, GFAAudienceStat } from '../types';
 import { analyzeNaverGFAData } from '../services/naverGFAService';
-import { checkAndIncrementDailyLimit, auth } from '../services/firebase';
+import { getRemainingDailyLimit, incrementDailyLimit, auth } from '../services/firebase';
 import { UploadIcon, CheckIcon, ChartIcon, AlertIcon } from './Icons';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
 
@@ -460,7 +460,7 @@ const GFADashboard = ({ result }: { result: AnalysisResult }) => {
     );
 };
 
-export const NaverGFA = () => {
+export const NaverGFA = ({ onUsageUpdated }: { onUsageUpdated?: () => void }) => {
     const [files, setFiles] = useState<UploadedFiles>({});
     const [isAnalyzing, setIsAnalyzing] = useState(false);
     const [result, setResult] = useState<AnalysisResult | null>(null);
@@ -499,14 +499,16 @@ export const NaverGFA = () => {
         }
         setIsAnalyzing(true);
         try {
+            // --- DAILY LIMIT CHECK (READ ONLY) ---
             if (auth.currentUser) {
-                const canProceed = await checkAndIncrementDailyLimit(auth.currentUser.uid);
-                if (!canProceed) {
-                    alert("일일 보고서 생성 횟수는 3회로 제한됩니다. (매일 한국시간 00시 초기화)");
+                const remaining = await getRemainingDailyLimit(auth.currentUser.uid);
+                if (remaining <= 0) {
+                    alert("일일 보고서 생성 횟수(2회)를 모두 소진했습니다. 내일 다시 이용해주세요.");
                     setIsAnalyzing(false);
                     return;
                 }
             }
+            // -------------------------
 
             const [campText, creativeText, audienceText] = await Promise.all([
                 readFileAsText(files.gfaCampaign),
@@ -516,9 +518,16 @@ export const NaverGFA = () => {
 
             const data = await analyzeNaverGFAData(campText, creativeText, audienceText);
             setResult(data);
+
+            // --- SUCCESS: INCREMENT LIMIT & UPDATE UI ---
+            if (auth.currentUser) {
+                await incrementDailyLimit(auth.currentUser.uid);
+                if (onUsageUpdated) onUsageUpdated();
+            }
+
         } catch (error) {
             console.error(error);
-            alert("AI 분석 생성에 실패했습니다. 파일 형식을 확인하거나 잠시 후 다시 시도해주세요.");
+            alert("AI 분석 생성에 실패했습니다. (횟수는 차감되지 않습니다.)\n파일 형식을 확인하거나 잠시 후 다시 시도해주세요.");
         } finally {
             setIsAnalyzing(false);
         }

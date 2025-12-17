@@ -7,7 +7,7 @@ import { NaverGFA } from './components/NaverGFA';
 import { MetaAds } from './components/MetaAds';
 import { GoogleAds } from './components/GoogleAds';
 import { CoupangAds } from './components/CoupangAds';
-import { auth, loginWithGoogle, logout } from './services/firebase';
+import { auth, loginWithGoogle, logout, getRemainingDailyLimit } from './services/firebase';
 import { onAuthStateChanged, User } from 'firebase/auth';
 import emailjs from '@emailjs/browser';
 
@@ -157,6 +157,7 @@ export default function App() {
   const [user, setUser] = useState<User | null>(null);
   const [isLoginLoading, setIsLoginLoading] = useState(false);
   const [showContactModal, setShowContactModal] = useState(false);
+  const [remainingUsage, setRemainingUsage] = useState<number | null>(null);
 
   // --- ROUTING LOGIC ---
   useEffect(() => {
@@ -185,19 +186,30 @@ export default function App() {
   };
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       if (currentUser) {
         setUser(currentUser);
         setViewState(ViewState.APP);
+        // Fetch usage
+        const usage = await getRemainingDailyLimit(currentUser.uid);
+        setRemainingUsage(usage);
       } else {
         setUser(null);
         setViewState(ViewState.LOGIN);
+        setRemainingUsage(null);
       }
       setIsLoginLoading(false);
     });
 
     return () => unsubscribe();
   }, []);
+
+  const refreshUsage = async () => {
+    if (user) {
+        const usage = await getRemainingDailyLimit(user.uid);
+        setRemainingUsage(usage);
+    }
+  };
 
   const handleLogin = async () => {
     setIsLoginLoading(true);
@@ -226,9 +238,9 @@ export default function App() {
       case PageView.LANDING:
         return <LandingPage />;
       case PageView.NAVER_SEARCH:
-        return <NaverSearchAds />;
+        return <NaverSearchAds onUsageUpdated={refreshUsage} />;
       case PageView.NAVER_GFA:
-        return <NaverGFA />;
+        return <NaverGFA onUsageUpdated={refreshUsage} />;
       case PageView.META:
         return <MetaAds />;
       case PageView.GOOGLE:
@@ -263,7 +275,15 @@ export default function App() {
                ) : (
                  <div className="w-6 h-6 rounded-full bg-gray-600 flex items-center justify-center text-xs">U</div>
                )}
-               <span>{user?.displayName || "User"}님 환영합니다.</span>
+               <span className="flex items-center gap-1">
+                 {user?.displayName || "User"}님
+                 {remainingUsage !== null && (
+                    <span className={`text-xs ml-1 px-2 py-0.5 rounded-full font-bold ${remainingUsage > 0 ? 'bg-[#03C75A]/20 text-[#03C75A]' : 'bg-red-500/20 text-red-400'}`}>
+                        남은 횟수: {remainingUsage}/2회
+                    </span>
+                 )}
+               </span>
+               <div className="h-4 w-[1px] bg-gray-600 mx-1"></div>
                <button onClick={handleLogout} className="underline hover:text-white">로그아웃</button>
             </div>
           </div>
