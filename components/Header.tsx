@@ -72,7 +72,7 @@ export const Header = ({
               className="hidden md:flex items-center gap-1 text-sm text-gray-300 hover:text-[#F05519] transition-colors"
             >
               <span>📧</span>
-              <span className="text-xs">문의</span>
+              <span className="text-xs">문의/건의사항</span>
             </button>
 
             <div className="h-6 w-[1px] bg-gray-600 hidden md:block"></div>
