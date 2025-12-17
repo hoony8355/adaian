@@ -11,6 +11,7 @@ export const LandingPage = () => {
   useEffect(() => {
     // 1. Title & Meta Tags
     document.title = "광고 성과 AI 분석 솔루션 - AdAiAn | 무료 인공지능 광고 분석";
+    const DOMAIN = "https://www.adaian.net";
     
     const updateMeta = (name: string, content: string) => {
       let element = document.querySelector(`meta[name="${name}"]`);
@@ -25,7 +26,16 @@ export const LandingPage = () => {
     updateMeta('description', '광고 성과 인공지능 분석을 무료로 시작하세요. 네이버 검색광고, GFA, SNS 광고 데이터를 AI가 분석하여 매출 상승을 위한 실행 가이드를 제공합니다.');
     updateMeta('keywords', '광고 성과 인공지능 분석, 광고 성과 AI 분석, 마케팅 자동화, 광고 효율 최적화, 네이버 광고 분석');
 
-    // 2. Expert JSON-LD Schema (SoftwareApplication + FAQPage)
+    // 2. Canonical URL Update (Crucial for new Domain)
+    let linkCanonical = document.querySelector("link[rel='canonical']");
+    if (!linkCanonical) {
+        linkCanonical = document.createElement("link");
+        linkCanonical.setAttribute("rel", "canonical");
+        document.head.appendChild(linkCanonical);
+    }
+    linkCanonical.setAttribute("href", `${DOMAIN}/`);
+
+    // 3. Expert JSON-LD Schema (SoftwareApplication + FAQPage) with updated Domain
     const schemaId = 'schema-landing-expert';
     const oldSchema = document.getElementById(schemaId);
     if (oldSchema) oldSchema.remove();
@@ -51,11 +61,11 @@ export const LandingPage = () => {
                 "AI 기반 ROAS 최적화 제안",
                 "광고비 누수 탐지"
             ],
-            "screenshot": "https://adaian.vercel.app/og-image.png",
+            "screenshot": `${DOMAIN}/og-image.png`,
             "provider": {
                 "@type": "Organization",
                 "name": "AdAiAn",
-                "url": "https://adaian.vercel.app"
+                "url": DOMAIN
             }
         },
         {
@@ -105,8 +115,7 @@ export const LandingPage = () => {
     document.head.appendChild(script);
 
     return () => {
-      // Cleanup is usually not strictly required in single page flow as it gets overwritten, 
-      // but keeping it clean prevents duplicate IDs if re-mounted rapidly.
+      // Cleanup
       const el = document.getElementById(schemaId);
       if(el) el.remove();
     };

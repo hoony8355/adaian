@@ -264,7 +264,7 @@ const DataGuide = () => {
         className="w-full flex items-center justify-between text-lg font-bold text-white mb-6 hover:text-[#F05519] transition-colors"
       >
         <span className="flex items-center gap-2">
-          <span className="text-[#F05519]">📘</span> 데이터 추출 가이드 (열기/닫기)
+          <span className="text-[#F05519] 📘">데이터 추출 가이드 (열기/닫기)</span>
         </span>
         <svg 
           className={`w-6 h-6 transform transition-transform ${isOpen ? 'rotate-180' : ''}`} 
@@ -493,6 +493,17 @@ export const NaverSearchAds = ({ onUsageUpdated }: { onUsageUpdated?: () => void
 
         updateMeta('description', '네이버 검색광고(파워링크) 성과를 AI가 무료로 분석합니다. 비효율 키워드 발굴, 디바이스 최적화, ROAS 상승 전략을 제안합니다.');
         updateMeta('keywords', '네이버 검색광고 분석, 파워링크 최적화, 키워드 광고 분석, ROAS 개선, 검색광고 자동화');
+
+        // Dynamic Canonical Tag
+        const DOMAIN = "https://www.adaian.net";
+        let linkCanonical = document.querySelector("link[rel='canonical']");
+        if (!linkCanonical) {
+            linkCanonical = document.createElement("link");
+            linkCanonical.setAttribute("rel", "canonical");
+            document.head.appendChild(linkCanonical);
+        }
+        linkCanonical.setAttribute("href", `${DOMAIN}/naver-search-analyzer`);
+
     }, []);
 
     const readFileAsText = (file: File): Promise<string> => {

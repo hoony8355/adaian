@@ -484,6 +484,17 @@ export const NaverGFA = ({ onUsageUpdated }: { onUsageUpdated?: () => void }) =>
 
         updateMeta('description', '네이버 GFA(성과형 디스플레이) 광고 성과를 AI가 무료로 분석합니다. 소재 효율, 타겟 오디언스 분석을 통해 ROAS를 극대화하세요.');
         updateMeta('keywords', '네이버 GFA 분석, 성과형 디스플레이 광고, GFA 소재 분석, 타겟팅 최적화, 배너 광고 효율');
+
+        // Dynamic Canonical Tag
+        const DOMAIN = "https://www.adaian.net";
+        let linkCanonical = document.querySelector("link[rel='canonical']");
+        if (!linkCanonical) {
+            linkCanonical = document.createElement("link");
+            linkCanonical.setAttribute("rel", "canonical");
+            document.head.appendChild(linkCanonical);
+        }
+        linkCanonical.setAttribute("href", `${DOMAIN}/naver-gfa-analyzer`);
+
     }, []);
 
     const readFileAsText = (file: File): Promise<string> => {
