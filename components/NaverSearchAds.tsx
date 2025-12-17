@@ -296,11 +296,14 @@ const DataGuide = () => {
                   </div>
               </div>
 
-              <div className="bg-gray-900 rounded-lg overflow-hidden border border-gray-700 min-h-[150px]">
+              <div className="bg-gray-900 rounded-lg overflow-hidden border border-gray-700 min-h-[150px] group relative">
+                  <div className="absolute top-2 right-2 bg-black/70 text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity z-10 pointer-events-none">
+                     마우스 오버시 확대
+                  </div>
                   <img 
                     src={step.imgSrc} 
                     alt={`${step.title} 설정 예시`} 
-                    className="w-full h-auto object-contain"
+                    className="w-full h-auto object-contain transition-transform duration-300 ease-in-out group-hover:scale-[1.7] cursor-zoom-in origin-center"
                     onError={handleImageError}
                   />
               </div>
@@ -502,6 +505,13 @@ export const NaverSearchAds = ({ onUsageUpdated }: { onUsageUpdated?: () => void
     };
 
     const handleAnalyze = async () => {
+        // --- AUTH CHECK BEFORE ANALYZE ---
+        if (!auth.currentUser) {
+            alert("상세 분석을 위해서는 로그인이 필요합니다.\n우측 상단의 로그인 버튼을 눌러주세요.");
+            // We can't auto-trigger popup here easily without context, but alert guides them.
+            return;
+        }
+
         if (!files.campaign || !files.device || !files.keywords) {
             alert("3가지 데이터 파일을 모두 업로드해주세요.");
             return;
@@ -509,13 +519,11 @@ export const NaverSearchAds = ({ onUsageUpdated }: { onUsageUpdated?: () => void
         setIsAnalyzing(true);
         try {
             // --- DAILY LIMIT CHECK (READ ONLY) ---
-            if (auth.currentUser) {
-              const remaining = await getRemainingDailyLimit(auth.currentUser.uid);
-              if (remaining <= 0) {
-                alert("일일 보고서 생성 횟수(2회)를 모두 소진했습니다. 내일 다시 이용해주세요.");
-                setIsAnalyzing(false);
-                return;
-              }
+            const remaining = await getRemainingDailyLimit(auth.currentUser.uid);
+            if (remaining <= 0) {
+              alert("일일 보고서 생성 횟수(2회)를 모두 소진했습니다. 내일 다시 이용해주세요.");
+              setIsAnalyzing(false);
+              return;
             }
             // -------------------------
 
@@ -528,10 +536,8 @@ export const NaverSearchAds = ({ onUsageUpdated }: { onUsageUpdated?: () => void
             setResult(data);
 
             // --- SUCCESS: INCREMENT LIMIT & UPDATE UI ---
-            if (auth.currentUser) {
-                await incrementDailyLimit(auth.currentUser.uid);
-                if (onUsageUpdated) onUsageUpdated();
-            }
+            await incrementDailyLimit(auth.currentUser.uid);
+            if (onUsageUpdated) onUsageUpdated();
 
         } catch (error) {
             console.error(error);

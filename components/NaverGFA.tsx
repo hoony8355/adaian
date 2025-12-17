@@ -261,11 +261,14 @@ const GFADataGuide = () => {
                       <span className="font-mono text-xs text-gray-400">{step.metrics}</span>
                     </div>
                 </div>
-                <div className="bg-gray-900 rounded-lg overflow-hidden border border-gray-700 min-h-[150px]">
+                <div className="bg-gray-900 rounded-lg overflow-hidden border border-gray-700 min-h-[150px] group relative">
+                    <div className="absolute top-2 right-2 bg-black/70 text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity z-10 pointer-events-none">
+                       마우스 오버시 확대
+                    </div>
                     <img 
                       src={step.imgSrc} 
                       alt={`${step.title} 설정 예시`} 
-                      className="w-full h-auto object-contain"
+                      className="w-full h-auto object-contain transition-transform duration-300 ease-in-out group-hover:scale-[1.7] cursor-zoom-in origin-center"
                       onError={handleImageError}
                     />
                 </div>
@@ -493,6 +496,13 @@ export const NaverGFA = ({ onUsageUpdated }: { onUsageUpdated?: () => void }) =>
     };
 
     const handleAnalyze = async () => {
+        // --- AUTH CHECK BEFORE ANALYZE ---
+        if (!auth.currentUser) {
+            alert("상세 분석을 위해서는 로그인이 필요합니다.\n우측 상단의 로그인 버튼을 눌러주세요.");
+            // We can't auto-trigger popup here easily without context, but alert guides them.
+            return;
+        }
+
         if (!files.gfaCampaign || !files.gfaCreative || !files.gfaAudience) {
             alert("3가지 데이터 파일을 모두 업로드해주세요.");
             return;
