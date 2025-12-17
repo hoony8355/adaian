@@ -26,6 +26,51 @@ const formatNumber = (value: number) => {
 
 // --- SUB COMPONENTS (Local) ---
 
+const GuideImage = ({ src, alt }: { src: string, alt: string }) => {
+  const [transformOrigin, setTransformOrigin] = useState('center center');
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    const { left, top, width, height } = e.currentTarget.getBoundingClientRect();
+    const x = ((e.clientX - left) / width) * 100;
+    const y = ((e.clientY - top) / height) * 100;
+    setTransformOrigin(`${x}% ${y}%`);
+  };
+
+  const handleImageError = (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
+    e.currentTarget.style.display = 'none';
+    const parent = e.currentTarget.parentElement;
+    if (parent) {
+      parent.innerHTML = `
+        <div class="flex flex-col items-center justify-center p-8 text-center text-gray-500">
+          <svg class="w-10 h-10 mb-2 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+          </svg>
+          <span class="text-xs font-mono">이미지 로드 실패</span>
+          <span class="text-[10px] mt-1 text-gray-600 block">프로젝트 최상위의 public 폴더 안에 guide_images 폴더가 있는지 확인해주세요.</span>
+        </div>
+      `;
+    }
+  };
+
+  return (
+    <div 
+      className="bg-gray-900 rounded-lg overflow-hidden border border-gray-700 min-h-[150px] group relative cursor-zoom-in"
+      onMouseMove={handleMouseMove}
+    >
+        <div className="absolute top-2 right-2 bg-black/70 text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity z-10 pointer-events-none">
+           마우스를 움직여 확대/이동
+        </div>
+        <img 
+          src={src} 
+          alt={alt} 
+          className="w-full h-auto object-contain transition-transform duration-100 ease-out group-hover:scale-[2]"
+          style={{ transformOrigin }}
+          onError={handleImageError}
+        />
+    </div>
+  );
+};
+
 const LoadingScreen = () => {
   const [messageIndex, setMessageIndex] = useState(0);
   const messages = [
@@ -241,22 +286,6 @@ const DataGuide = () => {
     }
   ];
 
-  const handleImageError = (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
-    e.currentTarget.style.display = 'none';
-    const parent = e.currentTarget.parentElement;
-    if (parent) {
-      parent.innerHTML = `
-        <div class="flex flex-col items-center justify-center p-8 text-center text-gray-500">
-          <svg class="w-10 h-10 mb-2 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
-          </svg>
-          <span class="text-xs font-mono">이미지 로드 실패</span>
-          <span class="text-[10px] mt-1 text-gray-600 block">프로젝트 최상위의 public 폴더 안에 guide_images 폴더가 있는지 확인해주세요.</span>
-        </div>
-      `;
-    }
-  };
-
   return (
     <div className="mt-12 border-t border-gray-700 pt-8 animate-fade-in">
       <button 
@@ -295,18 +324,8 @@ const DataGuide = () => {
                     <span className="font-mono text-xs text-gray-400">{step.metrics}</span>
                   </div>
               </div>
-
-              <div className="bg-gray-900 rounded-lg overflow-hidden border border-gray-700 min-h-[150px] group relative">
-                  <div className="absolute top-2 right-2 bg-black/70 text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity z-10 pointer-events-none">
-                     마우스 오버시 확대
-                  </div>
-                  <img 
-                    src={step.imgSrc} 
-                    alt={`${step.title} 설정 예시`} 
-                    className="w-full h-auto object-contain transition-transform duration-300 ease-in-out group-hover:scale-[1.7] cursor-zoom-in origin-center"
-                    onError={handleImageError}
-                  />
-              </div>
+              
+              <GuideImage src={step.imgSrc} alt={`${step.title} 설정 예시`} />
             </div>
           ))}
         </div>
@@ -580,6 +599,20 @@ export const NaverSearchAds = ({ onUsageUpdated }: { onUsageUpdated?: () => void
                         </div>
                     </div>
 
+                    {/* Important Notice for First Time Users */}
+                    <div className="mb-8 p-5 bg-orange-500/10 border border-orange-500/50 rounded-lg flex flex-col md:flex-row items-start md:items-center gap-4 animate-pulse-slow">
+                        <div className="text-3xl">📢</div>
+                        <div>
+                            <h3 className="font-bold text-orange-400 text-lg mb-1">
+                                최초 사용자 필독: 데이터 양식을 확인해주세요!
+                            </h3>
+                            <p className="text-sm text-gray-300 leading-relaxed">
+                                정확한 AI 분석을 위해 <strong>아래 가이드와 동일한 형식(열 순서, 항목)</strong>의 엑셀 파일이 필요합니다.<br/>
+                                <span className="text-gray-400 text-xs">양식이 다를 경우 분석이 실패하거나 엉뚱한 결과가 나올 수 있으니, 꼭 <span className="text-orange-400 underline cursor-pointer" onClick={() => document.querySelector('.guide-trigger')?.scrollIntoView({behavior: 'smooth'})}>데이터 추출 가이드</span>를 참고해주세요.</span>
+                            </p>
+                        </div>
+                    </div>
+
                     <div className="grid gap-4 mb-8">
                         <FileUploadZone 
                            label="1. 캠페인/주별 리포트" 
@@ -613,7 +646,9 @@ export const NaverSearchAds = ({ onUsageUpdated }: { onUsageUpdated?: () => void
                         AI 분석 실행하기
                     </button>
                     
-                    <DataGuide />
+                    <div className="guide-trigger">
+                         <DataGuide />
+                    </div>
 
                     {/* Report Example Trigger */}
                     <div className="mt-8 flex justify-center">

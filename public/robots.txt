@@ -1,3 +1,0 @@
-User-agent: *
-Allow: /
-Sitemap: https://adaian.vercel.app/sitemap.xml

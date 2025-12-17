@@ -116,3 +116,12 @@ dist
 .yarn/build-state.yml
 .yarn/install-state.gz
 .pnp.*
+
+# --- AdAiAn Specific Ignores ---
+# Prevent local deletion from overwriting remote GitHub assets
+public/guide_images/
+public/gfa_guide_images/
+
+# Ignore generated SEO files (created on build)
+public/sitemap.xml
+public/robots.txt
